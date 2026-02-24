@@ -223,7 +223,7 @@ The `Color` class supports hex-to-RGB conversion, HSV transformations, and `ligh
 
 ## Examples
 
-The `examples/` directory contains four complete working examples:
+The `examples/` directory contains complete working examples:
 
 | Example | Description | Output |
 |---------|-------------|--------|
@@ -232,6 +232,7 @@ The `examples/` directory contains four complete working examples:
 | `formation.php` | Training course | Course sheet with programme, sessions, side panel |
 | `catalogue.php` | Multi-page catalogue | Cover page + category separators + 10 course sheets |
 | `invoice.php` | Invoice | Professional invoice with items table and totals |
+| `booktoc.php` | Book with TOC | Cover + table of contents + 5 chapters with clickable links |
 
 Run an example:
 

@@ -24,6 +24,7 @@ class Pdf extends Fpdi
 	public bool $izOnLeft;
 	public ?Modelizer $izModel = null;
 	public string $izSourcesPath;
+	public string $tocFont = 'helvetica';
 
 	public function __construct($orientation = PDF_PAGE_ORIENTATION, $unit = PDF_UNIT, $format = PDF_PAGE_FORMAT, $unicode = true, $encoding = 'UTF-8', $diskcache = false, $pdfa = false)
 	{
