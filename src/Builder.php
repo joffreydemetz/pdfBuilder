@@ -33,6 +33,55 @@ abstract class Builder implements BuilderInterface
     $this->helper = new Helper();
   }
 
+  public function getSourcesPath(): string
+  {
+    return $this->sourcesPath;
+  }
+
+  public function setSourcesPath(string $sourcesPath): static
+  {
+    $this->sourcesPath = $sourcesPath;
+    return $this;
+  }
+
+  public function getTargetPath(): string
+  {
+    return $this->targetPath;
+  }
+
+  public function setTargetPath(string $targetPath): static
+  {
+    $this->targetPath = $targetPath;
+    return $this;
+  }
+
+  public function getData(): jData
+  {
+    return $this->data;
+  }
+
+  public function setData(jData $data): static
+  {
+    $this->data = $data;
+    return $this;
+  }
+
+  public function getHelper(): Helper
+  {
+    return $this->helper;
+  }
+
+  public function getToc(): bool
+  {
+    return $this->toc;
+  }
+
+  public function setToc(bool $toc): static
+  {
+    $this->toc = $toc;
+    return $this;
+  }
+
   protected function loadModelizerConfig(string $modelizer): array
   {
     $data = new jData();
