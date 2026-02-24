@@ -1,0 +1,10 @@
+inherits:
+    - base
+    - catalogue
+
+headerHeight: 282
+headerBg: '#007a87'
+headerColor: '#FFFFFF'
+headerFsize: 36
+marginTop: 302
+# marginBottom: 72

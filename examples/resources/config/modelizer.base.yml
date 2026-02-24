@@ -1,0 +1,74 @@
+colors:
+    white: "#FFFFFF"
+    black: "#000000"
+    grayish: "#a19f8c"
+    links: "#0b8181"
+    hr: "#5B4731"
+    # red: '#b10b2e'
+    # blue: '#19a0a0'
+    defaultColor: "#000000"
+    textColor: "#000000"
+    linkColor: "#0b8181"
+    colorTheme: "#000000"
+    colorTitle: "#000000"
+    colorText: "#000000"
+    h1Color: "#000000"
+    h2Color: "#000000"
+    h3Color: "#000000"
+    h4Color: "#000000"
+    h5Color: "#000000"
+    h6Color: "#000000"
+    pColor: "#000000"
+    liColor: "#000000"
+    pageNbColor: "#000000"
+
+fonts:
+    default: helvetica
+    black: helvetica
+    light: helvetica
+
+pageWidth: 1
+centerVertically: false
+betweenParts: 7
+borderWidth: 0.1
+
+# defaultColor: black
+# textColor: black
+# linkColor: black
+# colorTheme: black
+# colorTitle: black
+# colorText: black
+# h1Color: black
+# h2Color: black
+# h3Color: black
+# h4Color: black
+# h5Color: black
+# h6Color: black
+# pColor: black
+# liColor: black
+
+defaultSize: 9
+h1Fsize: 17
+h2Fsize: 16
+h3Fsize: 15
+h4Fsize: 13
+h5Fsize: 12
+h6Fsize: 11
+pFsize: 9
+liFsize: 9
+bulletFsize: 12
+
+h1Align: L
+h2Align: L
+h3Align: L
+h4Align: L
+h5Align: L
+h6Align: L
+linkStyle: B
+
+pageNbFont: helvetica
+pageNbSize: 8
+
+fontDefault: helvetica
+fontDark: helvetica
+fontLight: helvetica

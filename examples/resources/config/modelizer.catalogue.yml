@@ -1,0 +1,53 @@
+inherits:
+    - base
+
+fonts:
+    default: montserrat
+    black: montserratblack
+    light: montserratlight
+    medium: montserratmedium
+
+fontDefault: montserrat
+fontDark: montserratblack
+fontMedium: montserratmedium
+fontLight: montserratlight
+
+colors:
+    # h1: '#01778a'
+    h1: '#01a6ba'
+    h2: '#01a6ba'
+    # picto_details:  '#706f6f'
+    # picto_type:     '#01a6ba'
+    # picto_duree:    '#f6b6c8'
+    # picto_horaires: '#e50b54'
+    # picto_prix:     '#ef790e'
+    # picto_ref:      '#ffd703'
+    links: '#007a87'
+    bullets: '#01a6ba'
+    edinovoBlue: '#007a87'
+    edinovoYellow: '#FECB00'
+    # catalogueTheme: '#408080'
+    # cyclePartTheme: '#FECB00'
+    # titrePartTheme: '#FECB00'
+    # parcoursPartTheme: '#FECB00'
+    # stagePartTheme: '#007a87'
+    # elearningPartTheme: '#00b3be'
+    # defaultColor: '#000000'
+    # textColor: '#000000'
+    # linkColor: '#007a87'
+    # colorTheme: '#000000'
+    # colorTitle: '#000000'
+    # colorText: '#000000'
+    # h1Color: '#000000'
+    # h2Color: '#000000'
+    # h3Color: '#000000'
+    # h4Color: '#000000'
+    # h5Color: '#000000'
+    # h6Color: '#000000'
+    # pColor: '#000000'
+    # liColor: '#000000'
+
+
+# headerHeight: 70
+# marginTop: 30
+# marginBottom: 30

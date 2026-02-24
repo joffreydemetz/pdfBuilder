@@ -1,0 +1,6 @@
+inherits:
+    - base
+
+pageWidth: 1
+marginTop: 0
+marginBottom: 0

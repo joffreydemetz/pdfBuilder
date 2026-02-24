@@ -1,0 +1,18 @@
+inherits:
+    - base
+    - catalogue
+
+colors:
+    picto_details:  '#706f6f'
+    picto_type:     '#01a6ba'
+    picto_duree:    '#f6b6c8'
+    picto_horaires: '#e50b54'
+    picto_prix:     '#ef790e'
+    picto_ref:      '#ffd703'
+
+# headerHeight: 70
+# marginTop: 30
+# marginBottom: 30
+# headerHeight: 0
+# marginTop: 0
+# marginBottom: 0

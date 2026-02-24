@@ -1,0 +1,12 @@
+inherits:
+  - base
+
+colors:
+  invoiceBg: "#f7f7f7"
+  tableBorder: "#dddddd"
+  tableHeaderBg: "#2c3e50"
+  tableAltRow: "#f9f9f9"
+
+marginTop: 50
+marginBottom: 50
+pagePadding: 40

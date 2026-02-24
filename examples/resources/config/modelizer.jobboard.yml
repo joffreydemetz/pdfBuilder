@@ -1,0 +1,19 @@
+inherits:
+    - base
+
+fonts:
+    default: montserrat
+    black: montserratblack
+    light: montserratlight
+    medium: montserratmedium
+
+fontDefault: montserrat
+fontDark: montserratblack
+fontMedium: montserratmedium
+fontLight: montserratlight
+
+colors:
+    # h1: '#fab600'
+    # h2: '#fab600'
+    links: '#fab600'
+    bullets: '#fab600'
