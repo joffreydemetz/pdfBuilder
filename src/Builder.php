@@ -76,7 +76,7 @@ abstract class Builder implements BuilderInterface
     return $this->toc;
   }
 
-  public function setToc(bool $toc): static
+  public function withToc(bool $toc): static
   {
     $this->toc = $toc;
     return $this;
