@@ -17,7 +17,13 @@ Provides a **Builder/Modelizer** pattern for generating multi-page PDFs with YAM
 composer require jdz/pdfbuilder
 ```
 
-FPDI requires a private Composer repository. Add this to your `composer.json` if not already present:
+### PDF 1.5+ support (optional)
+
+FPDI natively handles PDF documents up to version 1.4. To import PDF 1.5+ files (those using compressed cross-references and object streams), you need the commercial [FPDI PDF-Parser](https://www.setasign.com/products/fpdi-pdf-parser/details/) add-on from Setasign.
+
+1. Purchase a license at [setasign.com](https://www.setasign.com/products/fpdi-pdf-parser/details/)
+
+2. Add the Setasign private Composer repository to your project's `composer.json`:
 
 ```json
 {
@@ -29,6 +35,14 @@ FPDI requires a private Composer repository. Add this to your `composer.json` if
     ]
 }
 ```
+
+3. Require the package (you will be prompted for your Setasign credentials):
+
+```bash
+composer require setasign/fpdi_pdf-parser
+```
+
+Once installed, FPDI automatically detects the parser and enables PDF 1.5+ support — no code changes needed.
 
 ## Architecture
 
