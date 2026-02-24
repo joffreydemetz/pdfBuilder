@@ -20,7 +20,6 @@ use JDZ\Pdf\Helper;
 class Modelizer
 {
   protected Pdf $pdf;
-  protected ?Book $book;
   protected Data $data;
   protected Helper $helper;
 
@@ -31,11 +30,10 @@ class Modelizer
   protected bool $printFooter = false;
   protected array $pagePlaceholders = [];
 
-  public function __construct(Pdf $pdf, Data $data, ?Book $book = null)
+  public function __construct(Pdf $pdf, Data $data)
   {
     $this->pdf = $pdf;
     $this->data = $data;
-    $this->book = $book;
     $this->helper = new Helper();
   }
 
