@@ -31,7 +31,6 @@ class Pdf extends Fpdi
 		parent::__construct($orientation, $unit, $format, $unicode, $encoding, $diskcache, $pdfa);
 
 		$this->SetCreator('Callisto Framework');
-		$this->SetAuthor('iZis a Website');
 		$this->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
 		$this->setImageScale(1.25);
 		$this->setJPEGQuality(100);
