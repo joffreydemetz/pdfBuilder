@@ -6,10 +6,11 @@ Provides a **Builder/Modelizer** pattern for generating multi-page PDFs with YAM
 
 ## Requirements
 
-- PHP >= 8.1
+- PHP >= 8.2
 - [TCPDF](https://github.com/tecnickcom/TCPDF) ^6.3
 - [FPDI](https://www.setasign.com/products/fpdi/about/) ^2.6
-- [Symfony YAML](https://symfony.com/doc/current/components/yaml.html) ^7.2
+- [Symfony YAML](https://symfony.com/doc/current/components/yaml.html) ^7.4
+- [jdz/data](https://github.com/joffreydemetz/data) ^2.0 (`JDZ\Utils\Data`, which `Builder` and `Data` build on)
 
 ## Installation
 
@@ -50,10 +51,10 @@ Once installed, FPDI automatically detects the parser and enables PDF 1.5+ suppo
 
 | Class | Role |
 |-------|------|
-| `Builder` | Abstract base class. Loads YAML modelizer configs with inheritance, registers fonts, orchestrates PDF generation. Concrete builders extend this and implement `build()`. |
+| `Builder` | Abstract base class (implements `Contract\BuilderInterface`). Loads YAML modelizer configs with inheritance, registers fonts, orchestrates PDF generation. Concrete builders extend this and implement `build()`. Holds the sources path, target path and data (getters/setters), plus a `withToc(bool)` / `getToc()` flag a build can read to print a table of contents. |
 | `Modelizer` | Base class for rendering a single page type. Subclasses override `Page()`, `Header()`, and `Footer()` to define layout. Handles margins, page breaks, and page number placeholders. |
 | `Data` | Configuration container extending `jData`. Manages colors (`Color`), fonts (`Font`), and provides unit conversion methods (`px2mm`, `px2pt`, `mm2px`, `percent2mm`). |
-| `Pdf` | FPDI/TCPDF bridge. Wraps `setasign\Fpdi\Tcpdf\Fpdi` with custom font loading, model-based Header/Footer callbacks, and page number offset support. |
+| `Pdf` | FPDI/TCPDF bridge. Extends `setasign\Fpdi\Tcpdf\Fpdi` with custom font loading, model-based Header/Footer callbacks, and page number offset support. |
 | `Helper` | Utility class for unit conversions, image sizing/resolution, border definition, and TOC export. |
 
 ### Built-in modelizers
@@ -73,6 +74,7 @@ Once installed, FPDI automatically detects the parser and enables PDF 1.5+ suppo
 | `Book` | Container for `Toc` and `BookText` in multi-page documents. |
 | `BookText` | Multilingual text management (fr, en, it) with plural support. |
 | `Toc` | Table of Contents with page mark tracking. |
+| `BookToc` | `Toc` that prints itself into the PDF (`setPdf()`, `setHelper()`, `withPrintToc()`, `toPdf()` via `Helper::exportToc()`). |
 
 ## Configuration
 
@@ -113,7 +115,7 @@ pFsize: 9
 borderWidth: 0.1
 ```
 
-Configs are loaded via `Builder::loadModelizerConfig('formation')`, which resolves the full inheritance chain and merges colors, fonts, and all other properties.
+Configs are loaded from your `build()` via `$this->loadModelizerConfig('formation')` (protected), which reads `<sourcesPath>config/modelizer.<name>.yml`, resolves the full inheritance chain and merges colors, fonts, and all other properties.
 
 ## Usage
 
@@ -222,7 +224,7 @@ $pdf->set('font', (object)[
 ]);
 ```
 
-Font definition files (PHP arrays) go in your `resources/fonts/` directory. The library ships with Helvetica, Courier, Montserrat, and Merienda.
+Font definition files (TCPDF PHP font files) go in the folder TCPDF reads fonts from: define `K_PATH_FONTS` before TCPDF loads, as `examples/autoload.php` does (it points at `examples/resources/fonts/`). The examples ship Helvetica, Courier, Montserrat, and Merienda.
 
 ## Color manipulation
 
@@ -253,6 +255,12 @@ Run an example:
 ```bash
 php examples/cv.php
 # Output: examples/files/cv-1.pdf
+```
+
+## Testing
+
+```bash
+vendor/bin/phpunit
 ```
 
 ## License
