@@ -138,7 +138,8 @@ class Helper
   {
     $borders = [];
 
-    if (strpos('T', $sides) !== false && strpos('R', $sides) !== false && strpos('B', $sides) !== false && strpos('L', $sides) !== false) {
+    // the four sides, in any order, are "all" (strpos() had its arguments reversed)
+    if (str_contains($sides, 'T') && str_contains($sides, 'R') && str_contains($sides, 'B') && str_contains($sides, 'L')) {
       $sides = 'all';
     }
 
@@ -179,7 +180,14 @@ class Helper
       $src = \imagecreatefromgif($path);
     } elseif (\IMAGETYPE_PNG === $type) {
       $src = \imagecreatefrompng($path);
+    } elseif (\IMAGETYPE_WEBP === $type) {
+      $src = \imagecreatefromwebp($path);
+    } elseif (\IMAGETYPE_BMP === $type) {
+      $src = \imagecreatefrombmp($path);
     } else {
+      // GD's default resolution (it used to be left unset: imageSize() then failed)
+      $img->resX = 96;
+      $img->resY = 96;
       return $img;
     }
 
@@ -198,9 +206,8 @@ class Helper
       $images = [];
     }
 
-    $fi = new \SplFileInfo($path);
-
-    $key  = $fi->getFilename() . '.' . ($w ? $w : '-') . '.' . ($h ? $h : '-');
+    // the full path: two images with the same name in different folders are different images
+    $key  = $path . '.' . ($w ? $w : '-') . '.' . ($h ? $h : '-');
 
     if (isset($images[$key])) {
       return $images[$key];

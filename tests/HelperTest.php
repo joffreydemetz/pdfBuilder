@@ -397,4 +397,101 @@ class HelperTest extends TestCase
 
         $this->helper->imageSize($path, 10, 10);
     }
+
+    // --- regressions ---
+
+    private ?string $tmp = null;
+
+    protected function tearDown(): void
+    {
+        if (null === $this->tmp) {
+            return;
+        }
+
+        foreach (glob($this->tmp . '/*/*') ?: [] as $file) {
+            unlink($file);
+        }
+        foreach (glob($this->tmp . '/*') ?: [] as $entry) {
+            is_dir($entry) ? rmdir($entry) : unlink($entry);
+        }
+        rmdir($this->tmp);
+    }
+
+    /** a $w x $h image written under a temp dir removed in tearDown */
+    private function image(string $relative, int $w, int $h, string $type = 'png'): string
+    {
+        $this->tmp ??= sys_get_temp_dir() . '/jdz-pdf-' . bin2hex(random_bytes(6));
+        $path = $this->tmp . '/' . $relative;
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+
+        $image = imagecreatetruecolor($w, $h);
+        match ($type) {
+            'png' => imagepng($image, $path),
+            'webp' => imagewebp($image, $path),
+            'bmp' => imagebmp($image, $path),
+        };
+
+        return $path;
+    }
+
+    public static function bordersSides(): array
+    {
+        return [
+            'the four sides are "all"' => ['TRBL', ['all']],
+            'in any order' => ['LBRT', ['all']],
+            'some sides' => ['TB', ['T', 'B']],
+            'no side' => ['', []],
+        ];
+    }
+
+    /**
+     * strpos() had its arguments reversed: four sides were never merged into
+     * "all", and no side at all gave "all".
+     */
+    #[DataProvider('bordersSides')]
+    public function testBordersPerSide(string $sides, array $keys): void
+    {
+        $border = $this->helper->border(2, [0, 0, 0]);
+
+        $this->assertSame(array_fill_keys($keys, $border), $this->helper->borders($sides, 2, [0, 0, 0]));
+    }
+
+    /**
+     * The size cache was keyed by file name: a second logo.png got the first
+     * one's path and size.
+     */
+    public function testImagesWithTheSameNameInDifferentFoldersAreSizedApart(): void
+    {
+        $a = $this->image('a/logo.png', 100, 50);
+        $b = $this->image('b/logo.png', 30, 30);
+
+        $sizeA = $this->helper->imageSize($a);
+        $sizeB = $this->helper->imageSize($b);
+
+        $this->assertSame([$a, 100, 50], [$sizeA['path'], $sizeA['oriW'], $sizeA['oriH']]);
+        $this->assertSame([$b, 30, 30], [$sizeB['path'], $sizeB['oriW'], $sizeB['oriH']]);
+    }
+
+    public static function otherFormats(): array
+    {
+        return [
+            'webp' => ['webp'],
+            'bmp' => ['bmp'],
+        ];
+    }
+
+    /**
+     * WebP and BMP images had no resolution: imageSize() warned, then hit a
+     * TypeError. They are read at GD's 96 dpi.
+     */
+    #[DataProvider('otherFormats')]
+    public function testOtherImageFormatsAreSizedAt96Dpi(string $type): void
+    {
+        $size = $this->helper->imageSize($this->image('picture.' . $type, 96, 48, $type));
+
+        $this->assertSame([96, 96], [$size['resX'], $size['resY']]);
+        $this->assertEqualsWithDelta([25.4, 12.7], [$size['w'], $size['h']], 0.01);
+    }
 }
