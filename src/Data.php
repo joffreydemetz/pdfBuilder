@@ -88,7 +88,7 @@ class Data extends jData
   public function getArrayItem(string $name, int $i = 0): mixed
   {
     if ($array = $this->getArray($name)) {
-      return $array[$i] ?: false;
+      return $array[$i] ?? false;
     }
 
     return false;
@@ -116,17 +116,27 @@ class Data extends jData
   public function getColorObject(string $key): Color
   {
     if (!$this->colors->has($key)) {
+      // black is the fallback, when there is one (this used to recurse forever)
+      if ('black' === $key || !$this->colors->has('black')) {
+        throw new \Exception('Color not found -- ' . $key);
+      }
+
       return $this->getColorObject('black');
     }
 
     return clone $this->colors->get($key);
   }
 
-  public function getFont(string $name, ?int $style = null): array
+  public function getFont(string $name, ?string $style = null): array
   {
     if (!$this->fonts->has($name)) {
       if (null !== ($k = $this->get($name))) {
         return $this->getFont($k, $style);
+      }
+
+      // the default font is the fallback, when there is one (this used to recurse forever)
+      if ('default' === $name || !$this->fonts->has('default')) {
+        throw new \Exception('Font not found -- ' . $name);
       }
 
       return $this->getFont('default', $style);
@@ -138,7 +148,7 @@ class Data extends jData
       $font->setStyle($style);
     }
 
-    return $this->fonts->get($name)->toArray();
+    return $font->toArray();
   }
 
   public function getBorderWidth(int|float $width = 1): int|float

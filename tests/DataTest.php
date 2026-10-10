@@ -123,6 +123,9 @@ class DataTest extends TestCase
             'second item' => [['tags' => ['red', 'green']], 'tags', 1, 'green'],
             'a scalar is a one-item list' => [['title' => 'Hello'], 'title', 0, 'Hello'],
             'missing key' => [[], 'tags', 0, false],
+            // it used `?: false`: a missing index warned, a falsy item became false
+            'an index past the end' => [['tags' => ['red', 'green']], 'tags', 5, false],
+            "a '0' item is returned" => [['tags' => ['0', 'green']], 'tags', 0, '0'],
         ];
     }
 
@@ -309,5 +312,43 @@ class DataTest extends TestCase
     {
         $this->expectException(\Exception::class);
         $this->data->percent2mm('missing', 200);
+    }
+
+    // --- regressions ---
+
+    /**
+     * A missing colour fell back to 'black' by calling itself: with no black
+     * colour stored either, it never stopped.
+     */
+    public function testAMissingColourWithoutABlackOneThrows(): void
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Color not found -- teal');
+
+        (new Data())->getColorObject('teal');
+    }
+
+    /**
+     * Same for a missing font without a 'default' one.
+     */
+    public function testAMissingFontWithoutADefaultOneThrows(): void
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Font not found -- title');
+
+        (new Data())->getFont('title');
+    }
+
+    /**
+     * The style argument used to be typed int (TCPDF styles are strings) and the
+     * stored font was returned instead of the styled copy.
+     */
+    public function testAStyleIsAppliedToACopyOfTheFont(): void
+    {
+        $data = new Data();
+        $data->addFont('default', (new Font('helvetica'))->setSize(10));
+
+        $this->assertSame(['helvetica', 'B', 10], $data->getFont('default', 'B'));
+        $this->assertSame(['helvetica', null, 10], $data->getFont('default'), 'the stored font is unchanged');
     }
 }
