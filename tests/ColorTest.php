@@ -209,4 +209,14 @@ class ColorTest extends TestCase
         $result = $color->parse('#400000')->lighten(20);
         $this->assertSame($color, $result);
     }
+
+    public function testDarkenMakesTheColorDarker(): void
+    {
+        $grey = (new Color('#808080'))->darken(20)->toArray();
+        $this->assertSame([77, 77, 77], $grey, 'value 0.50 -> 0.30');
+
+        $red = (new Color('#CC0000'))->darken(50)->toArray();
+        $this->assertLessThan(204, $red[0]);
+        $this->assertSame([0, 0], [$red[1], $red[2]]);
+    }
 }

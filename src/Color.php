@@ -71,7 +71,7 @@ class Color
     if ($percent > 0 && $percent < 100) {
       $percent /= 100;
 
-      $this->lightness = max(1, $this->lightness - $percent);
+      $this->lightness = max(0, $this->lightness - $percent);
 
       $rgb = $this->hsvToRgb($this->hue, $this->saturation, $this->lightness);
 
