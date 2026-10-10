@@ -39,6 +39,8 @@ class Modelizer
 
   public function load(): void
   {
+    $PDF_MARGIN_BOTTOM = null;
+
     if (true === $this->loadWithPdfMargins) {
       $basePadding = $this->data->get('pagePadding');
       $PDF_MARGIN_TOP = $this->data->px2mm('marginTop', $basePadding);
@@ -48,7 +50,8 @@ class Modelizer
     }
 
     if (true === $this->autoPageBreak) {
-      $this->pdf->SetAutoPageBreak(true, $PDF_MARGIN_BOTTOM);
+      // without the margins step the PDF keeps its own break margin (this was an undefined variable)
+      $this->pdf->SetAutoPageBreak(true, $PDF_MARGIN_BOTTOM ?? $this->pdf->getBreakMargin());
     }
 
     $this->pdf->setPrintHeader($this->printHeader);
@@ -153,7 +156,7 @@ class Modelizer
   protected function liToDash(string $content): string
   {
     if ($content) {
-      $content = mb_ereg_replace('\s*<li[^>]?>\s*', "<p> - ", $content);
+      $content = mb_ereg_replace('\s*<li[^>]*>\s*', "<p> - ", $content);
       $content = str_replace('</li>', '</p>', $content);
       $content = preg_replace("/<\/?ul>/", "", $content);
     }

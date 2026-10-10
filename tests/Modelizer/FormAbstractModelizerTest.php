@@ -55,6 +55,7 @@ class FormAbstractModelizerTest extends TestCase
                 'black' => '#000000',
                 'white' => '#FFFFFF',
                 'themeColor' => '#336699',
+                'defaultColor' => '#222222',
                 'fieldBgColor' => self::FIELD_BG,
                 'fieldStrokeColor' => self::FIELD_STROKE,
                 'formBgColor' => self::FORM_BG,
@@ -324,8 +325,8 @@ class FormAbstractModelizerTest extends TestCase
     public function testSetFormFieldSignatureDrawsAFramedHeaderAndAnEmptyBox(): void
     {
         $this->startAt(150);
-        // the header text is the package's default title (see the report on the ignored $title)
-        $title = 'Cachet de l’entreprise et signature';
+        // the header is the given title (it used to be a hard-coded text)
+        $title = 'Signature du stagiaire';
 
         $this->form->call('setFormFieldSignature', $this->x0, 150, 80, 40, $title);
 
@@ -371,5 +372,27 @@ class FormAbstractModelizerTest extends TestCase
         $this->assertCount(1, $line);
         $this->assertSame([$this->x0, $this->x0 + 150], [$line[0][0], $line[0][2]]);
         $this->assertEqualsWithDelta(170 + $this->mm(20), $this->pdf->GetY(), self::DELTA);
+    }
+
+    /**
+     * Without a colour the title is in defaultColor: the check compared with the
+     * string 'null', so it went on to a TypeError.
+     */
+    public function testSetPartTitleWithoutAColourUsesTheDefaultColour(): void
+    {
+        $this->startAt(40);
+
+        $this->form->call('setPartTitle', $this->x0, 40, 'Stagiaire');
+
+        $this->assertSame([[[34, 34, 34]]], $this->pdf->argsOf('setTextColorArray'));
+    }
+
+    public function testTheSignatureHeaderDefaultsToTheCompanyStampText(): void
+    {
+        $this->startAt(150);
+
+        $this->form->call('setFormFieldSignature', $this->x0, 150, 80, 40);
+
+        $this->assertSame('Cachet de l’entreprise et signature', $this->pdf->argsOf('Cell')[1][2]);
     }
 }

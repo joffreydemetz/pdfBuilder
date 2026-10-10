@@ -75,8 +75,9 @@ abstract class FormAbstractModelizer extends Modelizer
 
 	protected function setPartTitle($x, $y, $title, $subtitle = '', $subpart = 0, $color = null)
 	{
-		if ($color === 'null') {
-			$color = $this->data->getColor('defaultColor');
+		// the default colour by name: getColor() below resolves it (this compared with the string 'null')
+		if (null === $color) {
+			$color = 'defaultColor';
 		}
 
 		$this->pdf->setX($x);
@@ -182,7 +183,7 @@ abstract class FormAbstractModelizer extends Modelizer
 		$this->pdf->SetFont($this->data->get('fontDefault'), '', $this->data->px2pt('inputFsize'));
 	}
 
-	protected function setFormFieldSignature($x, $y, $w, $h, $title)
+	protected function setFormFieldSignature($x, $y, $w, $h, $title = 'Cachet de l’entreprise et signature')
 	{
 		$border       = $this->helper->px2mm(1);
 		$headerHeight = $this->helper->px2mm(10);
@@ -209,7 +210,7 @@ abstract class FormAbstractModelizer extends Modelizer
 		$this->pdf->setX($x);
 		$this->pdf->setY($y, false);
 		$this->pdf->SetFillColorArray($this->data->getColor('white'));
-		$this->pdf->Cell($insideWidth, $headerHeight, 'Cachet de l’entreprise et signature', 0, 1, 'C', true);
+		$this->pdf->Cell($insideWidth, $headerHeight, $title, 0, 1, 'C', true);
 
 		$y += $headerHeight;
 		$y += $border;

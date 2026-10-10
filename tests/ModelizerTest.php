@@ -223,4 +223,32 @@ class ModelizerTest extends TestCase
         $this->assertTrue($this->pdf->getAutoPageBreak());
         $this->assertSame($expectedBottom, $this->pdf->getBreakMargin());
     }
+
+    /**
+     * Without the margins step there was no bottom margin for the page break: an
+     * "Undefined variable" warning and a null break margin. The PDF keeps its own.
+     */
+    public function testAutoPageBreakWithoutTheMarginsStepKeepsThePdfBreakMargin(): void
+    {
+        $modelizer = new class($this->pdf, $this->data) extends ConcreteModelizer {
+            protected bool $loadWithPdfMargins = false;
+        };
+        $breakMargin = $this->pdf->getBreakMargin();
+
+        $modelizer->load();
+
+        $this->assertTrue($this->pdf->getAutoPageBreak());
+        $this->assertSame($breakMargin, $this->pdf->getBreakMargin());
+    }
+
+    /**
+     * The pattern was <li[^>]?>: an <li> with attributes was left as is.
+     */
+    public function testLiToDashConvertsListItemsWithAttributes(): void
+    {
+        $this->assertSame(
+            '<p> - Item 1</p><p> - Item 2</p>',
+            $this->createModelizer()->exposeLiToDash('<ul><li class="a">Item 1</li><li id="b" style="color:red">Item 2</li></ul>')
+        );
+    }
 }
