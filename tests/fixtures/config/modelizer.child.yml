@@ -1,0 +1,7 @@
+inherits:
+    - parent
+
+colors:
+    ink: "#222222"
+
+size: 10

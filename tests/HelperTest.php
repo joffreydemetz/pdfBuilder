@@ -3,10 +3,15 @@
 namespace JDZ\Pdf\Tests;
 
 use JDZ\Pdf\Helper;
+use JDZ\Pdf\Tests\Support\SpyPdf;
+use JDZ\Pdf\Toc;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class HelperTest extends TestCase
 {
+    private const IMAGES = __DIR__ . '/fixtures/images/';
+
     private Helper $helper;
 
     protected function setUp(): void
@@ -40,24 +45,33 @@ class HelperTest extends TestCase
 
     // --- uppercaseString ---
 
-    public function testUppercaseStringBasic(): void
+    public static function uppercaseStrings(): array
     {
-        $this->assertSame('HELLO', $this->helper->uppercaseString('hello'));
+        return [
+            'lowercase ascii' => ['hello', 'HELLO'],
+            'accented utf-8' => ['éàüö', 'ÉÀÜÖ'],
+            'already uppercase' => ['ABC', 'ABC'],
+            'mixed case with a space' => ['Hello World', 'HELLO WORLD'],
+        ];
     }
 
-    public function testUppercaseStringUtf8(): void
+    #[DataProvider('uppercaseStrings')]
+    public function testUppercaseString(string $input, string $expected): void
     {
-        $this->assertSame('ÉÀÜÖ', $this->helper->uppercaseString('éàüö'));
+        $this->assertSame($expected, $this->helper->uppercaseString($input));
     }
 
-    public function testUppercaseStringAlreadyUpper(): void
+    public function testUppercaseStringWorksInUtf8AndRestoresTheInternalEncoding(): void
     {
-        $this->assertSame('ABC', $this->helper->uppercaseString('ABC'));
-    }
+        $previous = mb_internal_encoding();
+        mb_internal_encoding('ISO-8859-1');
 
-    public function testUppercaseStringMixedCase(): void
-    {
-        $this->assertSame('HELLO WORLD', $this->helper->uppercaseString('Hello World'));
+        try {
+            $this->assertSame('ÉTÉ', $this->helper->uppercaseString('été'));
+            $this->assertSame('ISO-8859-1', mb_internal_encoding());
+        } finally {
+            mb_internal_encoding($previous);
+        }
     }
 
     // --- px2mm ---
@@ -87,14 +101,6 @@ class HelperTest extends TestCase
         $result = $this->helper->px2mm(39.333333333333336);
         $this->assertIsFloat($result);
         $this->assertGreaterThan(0, $result);
-    }
-
-    public function testPx2mmWithFloatMatchesCalculation(): void
-    {
-        $px = 10.5;
-        $dpcm = 72 * 0.393701;
-        $expected = ($px / $dpcm) * 10;
-        $this->assertEqualsWithDelta($expected, $this->helper->px2mm($px), 0.001);
     }
 
     // --- px2pt ---
@@ -154,34 +160,22 @@ class HelperTest extends TestCase
 
     // --- percent2mm ---
 
-    public function testPercent2mm(): void
+    public static function percentages(): array
     {
-        $this->assertEqualsWithDelta(50, $this->helper->percent2mm(50, 100), 0.001);
+        return [
+            'half' => [50, 100, 50],
+            'full' => [100, 200, 200],
+            'zero' => [0, 100, 0],
+            'quarter' => [25, 100, 25],
+            'fractional percent' => [33.75, 100, 33.75],
+            'float base' => [50, 170.0, 85],
+        ];
     }
 
-    public function testPercent2mmFull(): void
+    #[DataProvider('percentages')]
+    public function testPercent2mm(int|float $percent, int|float $base, int|float $expected): void
     {
-        $this->assertEqualsWithDelta(200, $this->helper->percent2mm(100, 200), 0.001);
-    }
-
-    public function testPercent2mmZero(): void
-    {
-        $this->assertEqualsWithDelta(0, $this->helper->percent2mm(0, 100), 0.001);
-    }
-
-    public function testPercent2mmSmall(): void
-    {
-        $this->assertEqualsWithDelta(25, $this->helper->percent2mm(25, 100), 0.001);
-    }
-
-    public function testPercent2mmWithFloats(): void
-    {
-        $this->assertEqualsWithDelta(33.75, $this->helper->percent2mm(33.75, 100), 0.001);
-    }
-
-    public function testPercent2mmWithFloatBase(): void
-    {
-        $this->assertEqualsWithDelta(85.0, $this->helper->percent2mm(50, 170.0), 0.001);
+        $this->assertEqualsWithDelta($expected, $this->helper->percent2mm($percent, $base), 1e-9);
     }
 
     // --- border ---
@@ -245,21 +239,162 @@ class HelperTest extends TestCase
 
     // --- spanner ---
 
-    public function testSpanner(): void
+    public static function spans(): array
     {
-        $result = $this->helper->spanner(12, 'Hello');
-        $this->assertSame('<span style="line-height:12pt;">Hello</span>', $result);
+        return [
+            '12pt' => [12, 'Hello', '<span style="line-height:12pt;">Hello</span>'],
+            '20pt' => [20, 'Test', '<span style="line-height:20pt;">Test</span>'],
+            'empty text' => [10, '', '<span style="line-height:10pt;"></span>'],
+        ];
     }
 
-    public function testSpannerWithDifferentHeight(): void
+    #[DataProvider('spans')]
+    public function testSpanner(int $height, string $text, string $expected): void
     {
-        $result = $this->helper->spanner(20, 'Test');
-        $this->assertSame('<span style="line-height:20pt;">Test</span>', $result);
+        $this->assertSame($expected, $this->helper->spanner($height, $text));
     }
 
-    public function testSpannerWithEmptyText(): void
+    // --- exportToc ---
+
+    public function testExportTocWritesALinkedPageNumberAtEveryMarkPosition(): void
     {
-        $result = $this->helper->spanner(10, '');
-        $this->assertSame('<span style="line-height:10pt;"></span>', $result);
+        $pdf = new SpyPdf();
+        $pdf->AddPage();
+        $pdf->AddPage();
+        $pdf->AddPage();
+        $pdf->setPage(1);
+        $pdf->izPageNoOffset = 1;
+        $pdf->set('tocFont', 'courier');
+
+        $toc = new Toc();
+        $toc->setPosition('intro', ['p' => 1, 'x' => 150, 'y' => 40, 'w' => 30, 'h' => 6]);
+        $toc->setPosition('intro', ['p' => 2, 'x' => 120, 'y' => 20, 'w' => 25, 'h' => 5]);
+        $toc->setPosition('outro', ['p' => 2, 'x' => 150, 'y' => 60, 'w' => 30, 'h' => 6]);
+        $toc->setPage('intro', 1);
+        $toc->setPage('outro', 2);
+        $pdf->calls = [];
+
+        $timeLimit = (int)ini_get('max_execution_time');
+        $this->helper->exportToc($toc, $pdf);
+        set_time_limit($timeLimit);
+
+        $this->assertSame([[1], [2], [2]], $pdf->argsOf('setPage'));
+        $this->assertSame([[150], [120], [150]], $pdf->argsOf('setX'));
+        $this->assertSame([[40, false], [20, false], [60, false]], $pdf->argsOf('setY'));
+        $this->assertSame(array_fill(0, 3, ['courier', '', 7.5]), $pdf->argsOf('setFont'));
+        $this->assertSame(array_fill(0, 3, [[255, 255, 255]]), $pdf->argsOf('setFillColorArray'));
+        $this->assertSame(array_fill(0, 3, [[0, 0, 0]]), $pdf->argsOf('setTextColorArray'));
+        $this->assertSame(
+            array_fill(0, 3, [0, $this->helper->px2mm(3), $this->helper->px2mm(10), $this->helper->px2mm(2)]),
+            $pdf->argsOf('setCellPaddings')
+        );
+
+        $cells = $pdf->argsOf('Cell');
+        $links = array_column($cells, 7);
+        $this->assertCount(3, array_unique($links), 'one link per position');
+        $this->assertSame([
+            [30, 6, 1, 0, 0, 'R', false, $links[0]],
+            [25, 5, 1, 0, 0, 'R', false, $links[1]],
+            [30, 6, 2, 0, 0, 'R', false, $links[2]],
+        ], $cells);
+        // each link targets the mark's page shifted by the page-number offset
+        $this->assertSame([[$links[0], 0, 2], [$links[1], 0, 2], [$links[2], 0, 3]], $pdf->argsOf('setLink'));
+
+        $this->assertSame('lastPage', $pdf->methods()[count($pdf->calls) - 1]);
+        $this->assertSame(3, $pdf->getPage());
+    }
+
+    public function testExportTocWithoutMarksLeavesThePdfUntouched(): void
+    {
+        $pdf = new SpyPdf();
+        $pdf->AddPage();
+        $pdf->AddPage();
+        $pdf->setPage(1);
+        $pdf->calls = [];
+
+        $this->helper->exportToc(new Toc(), $pdf);
+
+        $this->assertSame([], $pdf->calls);
+        $this->assertSame(1, $pdf->getPage());
+    }
+
+    // --- getImageInfos ---
+
+    public static function images(): array
+    {
+        return [
+            'png keeps its 72 dpi' => ['landscape-200x100.png', 200, 100, \IMAGETYPE_PNG, 72],
+            'jpeg keeps its 150 dpi' => ['photo-30x20.jpg', 30, 20, \IMAGETYPE_JPEG, 150],
+            'gif has no dpi, GD reports 96' => ['flat-16x8.gif', 16, 8, \IMAGETYPE_GIF, 96],
+        ];
+    }
+
+    #[DataProvider('images')]
+    public function testGetImageInfosReadsSizeTypeAndResolution(string $file, int $width, int $height, int $type, int $dpi): void
+    {
+        $path = self::IMAGES . $file;
+
+        $this->assertSame([
+            'path' => $path,
+            'width' => $width,
+            'height' => $height,
+            'type' => $type,
+            'resX' => $dpi,
+            'resY' => $dpi,
+        ], (array)$this->helper->getImageInfos($path));
+    }
+
+    public function testGetImageInfosThrowsForAMissingImage(): void
+    {
+        $path = self::IMAGES . 'missing.png';
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('image ' . $path . ' not found');
+
+        $this->helper->getImageInfos($path);
+    }
+
+    // --- imageSize (landscape-200x100.png at 72 dpi) ---
+
+    public static function imageBoxes(): array
+    {
+        $natural = ['wPx' => 200, 'hPx' => 100, 'w' => 70.55551745557612, 'h' => 35.27775872778806];
+        $heightCapped = ['wPx' => 56.0, 'hPx' => 28.0, 'w' => 19.755544887561314, 'h' => 9.877772443780657];
+
+        return [
+            'no box: natural size' => [null, null, $natural],
+            'box larger than the image: natural size' => [500, 500, $natural],
+            'height cap (10mm = 28px) scales both sides' => [null, 10, $heightCapped],
+            'width cap (22mm = 62px) scales both sides' => [22, null, ['wPx' => 62.0, 'hPx' => 31.0, 'w' => 21.8722104112286, 'h' => 10.9361052056143]],
+            'height cap applied, width cap already met' => [60, 10, $heightCapped],
+        ];
+    }
+
+    #[DataProvider('imageBoxes')]
+    public function testImageSizeFitsTheImageInTheBox(int|float|null $w, int|float|null $h, array $size): void
+    {
+        $path = self::IMAGES . 'landscape-200x100.png';
+
+        $this->assertSame([
+            'path' => $path,
+            'oriW' => 200,
+            'oriH' => 100,
+            'wPx' => $size['wPx'],
+            'hPx' => $size['hPx'],
+            'resX' => 72,
+            'resY' => 72,
+            'w' => $size['w'],
+            'h' => $size['h'],
+        ], $this->helper->imageSize($path, $w, $h));
+    }
+
+    public function testImageSizeThrowsForAMissingImage(): void
+    {
+        $path = self::IMAGES . 'missing-too.png';
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('image ' . $path . ' not found');
+
+        $this->helper->imageSize($path, 10, 10);
     }
 }

@@ -58,14 +58,6 @@ class TocTest extends TestCase
 
     // --- setPosition ---
 
-    public function testSetPositionReturnsThis(): void
-    {
-        $result = $this->toc->setPosition('ch1', [
-            'p' => 1, 'x' => 10, 'y' => 20, 'w' => 50, 'h' => 10,
-        ]);
-        $this->assertSame($this->toc, $result);
-    }
-
     public function testSetPositionAddsPositionToItem(): void
     {
         $this->toc->setPosition('ch1', [

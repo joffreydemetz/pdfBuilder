@@ -2,153 +2,162 @@
 
 namespace JDZ\Pdf\Tests;
 
-use JDZ\Pdf\Builder;
+use JDZ\Pdf\Tests\Support\ConcreteBuilder;
 use JDZ\Utils\Data as jData;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-
-/**
- * Concrete implementation for testing the abstract Builder.
- */
-class ConcreteBuilder extends Builder
-{
-    public bool $buildCalled = false;
-
-    public function build(): void
-    {
-        $this->buildCalled = true;
-    }
-
-    // Expose protected methods for testing
-    public function exposeLoadModelizerConfig(string $modelizer): array
-    {
-        return $this->loadModelizerConfig($modelizer);
-    }
-
-    public function exposeLoadModelizerConfigFile(string $file, array &$inherits = []): array
-    {
-        return $this->loadModelizerConfigFile($file, $inherits);
-    }
-
-    public function getSourcesPath(): string
-    {
-        return $this->sourcesPath;
-    }
-
-    public function getTargetPath(): string
-    {
-        return $this->targetPath;
-    }
-
-    public function getData(): jData
-    {
-        return $this->data;
-    }
-
-    public function hasToc(): bool
-    {
-        return $this->toc;
-    }
-}
 
 class BuilderTest extends TestCase
 {
-    private string $sourcesPath;
-    private string $targetPath;
-
-    protected function setUp(): void
+    private function builderOn(string $sourcesPath): ConcreteBuilder
     {
-        $this->sourcesPath = str_replace('\\', '/', realpath(__DIR__ . '/../resources/')) . '/';
-        $this->targetPath = sys_get_temp_dir() . '/test-output.pdf';
+        return new ConcreteBuilder($sourcesPath, sys_get_temp_dir() . '/test-output.pdf', new jData());
     }
 
-    private function createBuilder(): ConcreteBuilder
+    private function packageBuilder(): ConcreteBuilder
     {
-        return new ConcreteBuilder($this->sourcesPath, $this->targetPath, new jData());
+        return $this->builderOn(str_replace('\\', '/', realpath(__DIR__ . '/../resources')) . '/');
     }
 
-    public function testConstructorSetsProperties(): void
+    private function fixtureBuilder(): ConcreteBuilder
     {
-        $data = new jData();
-        $builder = new ConcreteBuilder($this->sourcesPath, '/tmp/out.pdf', $data);
-
-        $this->assertSame($this->sourcesPath, $builder->getSourcesPath());
-        $this->assertSame('/tmp/out.pdf', $builder->getTargetPath());
-        $this->assertSame($data, $builder->getData());
+        return $this->builderOn(str_replace('\\', '/', realpath(__DIR__ . '/fixtures')) . '/');
     }
 
-    public function testTocDefaultsFalse(): void
+    /**
+     * resources/config/modelizer.base.yml once merged: its scalar keys in file order,
+     * then the colors, then the fonts.
+     */
+    private static function baseScalars(): array
     {
-        $builder = $this->createBuilder();
-        $this->assertFalse($builder->hasToc());
+        return [
+            'pageWidth' => 1,
+            'centerVertically' => false,
+            'betweenParts' => 7,
+            'borderWidth' => 0.1,
+            'defaultSize' => 9,
+            'h1Fsize' => 17,
+            'h2Fsize' => 16,
+            'h3Fsize' => 15,
+            'h4Fsize' => 13,
+            'h5Fsize' => 12,
+            'h6Fsize' => 11,
+            'pFsize' => 9,
+            'liFsize' => 9,
+            'bulletFsize' => 12,
+            'h1Align' => 'L',
+            'h2Align' => 'L',
+            'h3Align' => 'L',
+            'h4Align' => 'L',
+            'h5Align' => 'L',
+            'h6Align' => 'L',
+            'linkStyle' => 'B',
+            'pageNbFont' => 'helvetica',
+            'pageNbSize' => 8,
+            'fontDefault' => 'helvetica',
+            'fontDark' => 'helvetica',
+            'fontLight' => 'helvetica',
+        ];
     }
 
-    public function testBuildCanBeCalled(): void
+    private static function baseColorsAndFonts(): array
     {
-        $builder = $this->createBuilder();
-        $builder->build();
-        $this->assertTrue($builder->buildCalled);
+        return [
+            'colors' => [
+                'white' => '#FFFFFF',
+                'black' => '#000000',
+                'grayish' => '#a19f8c',
+                'links' => '#0b8181',
+                'hr' => '#5B4731',
+                'defaultColor' => '#000000',
+                'textColor' => '#000000',
+                'linkColor' => '#0b8181',
+                'colorTheme' => '#000000',
+                'colorTitle' => '#000000',
+                'colorText' => '#000000',
+                'h1Color' => '#000000',
+                'h2Color' => '#000000',
+                'h3Color' => '#000000',
+                'h4Color' => '#000000',
+                'h5Color' => '#000000',
+                'h6Color' => '#000000',
+                'pColor' => '#000000',
+                'liColor' => '#000000',
+                'pageNbColor' => '#000000',
+            ],
+            'fonts' => [
+                'default' => 'helvetica',
+                'black' => 'helvetica',
+                'light' => 'helvetica',
+            ],
+        ];
     }
 
-    public function testLoadModelizerConfigFileBlank(): void
+    public static function packagedModelizers(): array
     {
-        $builder = $this->createBuilder();
+        $fullPage = ['pageWidth' => 1, 'marginTop' => 0, 'marginBottom' => 0];
+
+        return [
+            'blank adds nothing to base' => ['blank', [], self::baseScalars() + self::baseColorsAndFonts()],
+            'image zeroes the vertical margins' => ['image', $fullPage, self::baseScalars() + ['marginTop' => 0, 'marginBottom' => 0] + self::baseColorsAndFonts()],
+            'pdf zeroes the vertical margins' => ['pdf', $fullPage, self::baseScalars() + ['marginTop' => 0, 'marginBottom' => 0] + self::baseColorsAndFonts()],
+        ];
+    }
+
+    #[DataProvider('packagedModelizers')]
+    public function testLoadModelizerConfigFileReturnsOwnKeysAndListsBaseAsParent(string $modelizer, array $ownKeys, array $merged): void
+    {
         $inherits = [];
-        $config = $builder->exposeLoadModelizerConfigFile('blank', $inherits);
+        $config = $this->packageBuilder()->exposeLoadModelizerConfigFile($modelizer, $inherits);
 
-        $this->assertIsArray($config);
+        $this->assertSame($ownKeys, $config);
+        $this->assertSame(['base'], $inherits);
+    }
+
+    #[DataProvider('packagedModelizers')]
+    public function testLoadModelizerConfigMergesBaseUnderThePackagedModelizer(string $modelizer, array $ownKeys, array $merged): void
+    {
+        $this->assertSame($merged, $this->packageBuilder()->exposeLoadModelizerConfig($modelizer));
     }
 
     public function testLoadModelizerConfigFileNonExistent(): void
     {
-        $builder = $this->createBuilder();
+        $builder = $this->packageBuilder();
         $inherits = [];
         $config = $builder->exposeLoadModelizerConfigFile('nonexistent_model', $inherits);
 
         $this->assertSame([], $config);
     }
 
-    public function testLoadModelizerConfigFileBase(): void
+    public function testLoadModelizerConfigFileListsAncestorsParentFirstAndOnce(): void
     {
-        $builder = $this->createBuilder();
+        // leaf inherits [child, extra]; both inherit parent
         $inherits = [];
-        $config = $builder->exposeLoadModelizerConfigFile('base', $inherits);
+        $config = $this->fixtureBuilder()->exposeLoadModelizerConfigFile('leaf', $inherits);
 
-        $this->assertIsArray($config);
-        // The base config should have colors and fonts
-        if (!empty($config)) {
-            $this->assertTrue(
-                isset($config['colors']) || isset($config['fonts']) || count($config) > 0
-            );
-        }
+        $this->assertSame(['parent', 'child', 'extra'], $inherits);
+        $this->assertSame([
+            'colors' => ['accent' => [1, 2, 3]],
+            'fonts' => ['title' => 'courier'],
+            'align' => 'R',
+        ], $config);
     }
 
-    public function testLoadModelizerConfigFileWithInheritance(): void
+    public function testLoadModelizerConfigLetsEachDescendantOverrideItsAncestors(): void
     {
-        $builder = $this->createBuilder();
-        $inherits = [];
-        $config = $builder->exposeLoadModelizerConfigFile('formation', $inherits);
-
-        // formation.yml inherits from other configs
-        $this->assertIsArray($inherits);
-    }
-
-    public function testLoadModelizerConfigBlank(): void
-    {
-        $builder = $this->createBuilder();
-        $config = $builder->exposeLoadModelizerConfig('blank');
-
-        $this->assertIsArray($config);
-    }
-
-    public function testLoadModelizerConfigMergesInheritedConfigs(): void
-    {
-        $builder = $this->createBuilder();
-        $config = $builder->exposeLoadModelizerConfig('formation');
-
-        $this->assertIsArray($config);
-        // Should have merged colors and fonts from inherited configs
-        if (isset($config['colors'])) {
-            $this->assertIsArray($config['colors']);
-        }
+        $this->assertSame([
+            'size' => 11,          // parent 9 -> child 10 -> extra 11
+            'align' => 'R',        // parent L -> leaf R
+            'extraOnly' => true,
+            'colors' => [
+                'ink' => '#222222',    // parent #111111 -> child #222222
+                'paper' => '#FFFFFF',
+                'accent' => [1, 2, 3],
+            ],
+            'fonts' => [
+                'default' => 'helvetica',
+                'title' => 'courier', // parent helvetica -> leaf courier
+            ],
+        ], $this->fixtureBuilder()->exposeLoadModelizerConfig('leaf'));
     }
 }

@@ -1,0 +1,11 @@
+inherits:
+    - child
+    - extra
+
+colors:
+    accent: [1, 2, 3]
+
+fonts:
+    title: courier
+
+align: R

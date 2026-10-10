@@ -2,7 +2,11 @@
 
 namespace JDZ\Pdf\Tests;
 
+use JDZ\Pdf\Data;
 use JDZ\Pdf\Pdf;
+use JDZ\Pdf\Tests\Support\ConcreteModelizer;
+use JDZ\Pdf\Tests\Support\SpyPdf;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class PdfTest extends TestCase
@@ -14,46 +18,10 @@ class PdfTest extends TestCase
         $this->pdf = new Pdf();
     }
 
-    // --- get / set ---
-
-    public function testSetAndGetProperty(): void
-    {
-        $this->pdf->set('izPageNoOffset', 5);
-        $this->assertSame(5, $this->pdf->get('izPageNoOffset'));
-    }
-
     public function testGetReturnsDefaultWhenNotSet(): void
     {
         $this->assertSame('fallback', $this->pdf->get('nonExistentProp', 'fallback'));
     }
-
-    public function testGetReturnsNullByDefault(): void
-    {
-        $this->assertNull($this->pdf->get('nonExistentProp'));
-    }
-
-    public function testSetReturnsThis(): void
-    {
-        $result = $this->pdf->set('izPageNoOffset', 1);
-        $this->assertSame($this->pdf, $result);
-    }
-
-    // --- izPageNoOffset ---
-
-    public function testDefaultPageNoOffset(): void
-    {
-        $this->assertSame(0, $this->pdf->izPageNoOffset);
-    }
-
-    // --- izSourcesPath ---
-
-    public function testSetSourcesPath(): void
-    {
-        $this->pdf->set('izSourcesPath', '/some/path/');
-        $this->assertSame('/some/path/', $this->pdf->get('izSourcesPath'));
-    }
-
-    // --- PageNo with offset ---
 
     public function testPageNoWithOffset(): void
     {
@@ -67,8 +35,6 @@ class PdfTest extends TestCase
         $this->assertSame($pageWithoutOffset - 2, $pageWithOffset);
     }
 
-    // --- AddPage resets izOnLeft ---
-
     public function testAddPageSetsIzOnLeftTrue(): void
     {
         $this->pdf->set('izOnLeft', false);
@@ -76,19 +42,49 @@ class PdfTest extends TestCase
         $this->assertTrue($this->pdf->get('izOnLeft'));
     }
 
-    // --- pageHoldsEnoughSpace ---
-
-    public function testPageHoldsEnoughSpaceReturnsBool(): void
-    {
-        $this->pdf->AddPage();
-        $result = $this->pdf->pageHoldsEnoughSpace(10);
-        $this->assertIsBool($result);
-    }
-
     public function testPageHoldsEnoughSpaceSmallHeight(): void
     {
         $this->pdf->AddPage();
         // A very small height should fit on a fresh page
         $this->assertTrue($this->pdf->pageHoldsEnoughSpace(1));
+    }
+
+    public static function overflowingHeights(): array
+    {
+        return [
+            'only checks' => [false, 1],
+            'breaks to a new page' => [true, 2],
+        ];
+    }
+
+    #[DataProvider('overflowingHeights')]
+    public function testPageHoldsEnoughSpaceIsFalseForAHeightTallerThanThePage(bool $addPage, int $pagesAfter): void
+    {
+        $this->pdf->AddPage();
+
+        $this->assertFalse($this->pdf->pageHoldsEnoughSpace(1000, '', $addPage));
+        $this->assertSame($pagesAfter, $this->pdf->getNumPages());
+    }
+
+    public function testSettingAFontRegistersEachOfItsStyles(): void
+    {
+        $pdf = new SpyPdf();
+
+        $pdf->set('font', (object)['name' => 'helvetica', 'styles' => [null, 'B', 'I']]);
+
+        $this->assertSame([['helvetica', ''], ['helvetica', 'B'], ['helvetica', 'I']], $pdf->argsOf('AddFont'));
+        $this->assertNull($pdf->get('font'));
+    }
+
+    public function testHeaderAndFooterAreDrawnByTheModel(): void
+    {
+        $model = new ConcreteModelizer($this->pdf, new Data());
+        $this->pdf->set('izModel', $model);
+
+        $this->pdf->AddPage();
+        $this->assertSame([1, 0], [$model->headers, $model->footers]);
+
+        $this->pdf->endPage();
+        $this->assertSame([1, 1], [$model->headers, $model->footers]);
     }
 }

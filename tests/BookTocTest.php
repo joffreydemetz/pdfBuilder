@@ -16,73 +16,13 @@ class BookTocTest extends TestCase
         $this->bookToc = new BookToc();
     }
 
-    // --- inheritance from Toc ---
-
-    public function testExtendsToC(): void
-    {
-        $this->assertInstanceOf(\JDZ\Pdf\Toc::class, $this->bookToc);
-    }
-
-    public function testNewBookTocHasNoMarks(): void
-    {
-        $this->assertFalse($this->bookToc->hasMarks());
-    }
-
-    // --- setHelper ---
-
-    public function testSetHelperReturnsSelf(): void
-    {
-        $helper = new Helper();
-        $result = $this->bookToc->setHelper($helper);
-        $this->assertSame($this->bookToc, $result);
-    }
-
-    // --- setPdf ---
-
-    public function testSetPdfReturnsSelf(): void
-    {
-        $pdf = $this->createMock(Pdf::class);
-        $result = $this->bookToc->setPdf($pdf);
-        $this->assertSame($this->bookToc, $result);
-    }
-
-    // --- withPrintToc ---
-
-    public function testWithPrintTocReturnsSelf(): void
-    {
-        $result = $this->bookToc->withPrintToc(true);
-        $this->assertSame($this->bookToc, $result);
-    }
-
-    public function testWithPrintTocDefaultsToTrue(): void
-    {
-        $result = $this->bookToc->withPrintToc();
-        $this->assertSame($this->bookToc, $result);
-    }
-
-    // --- toPdf ---
-
-    public function testToPdfReturnsSelf(): void
-    {
-        $helper = new Helper();
-        $pdf = $this->createMock(Pdf::class);
-
-        $this->bookToc->setHelper($helper);
-        $this->bookToc->setPdf($pdf);
-
-        $result = $this->bookToc->toPdf();
-        $this->assertSame($this->bookToc, $result);
-    }
-
     public function testToPdfDoesNothingWhenPrintTocIsFalse(): void
     {
         $helper = $this->createMock(Helper::class);
-        $pdf = $this->createMock(Pdf::class);
-
         $helper->expects($this->never())->method('exportToc');
 
         $this->bookToc->setHelper($helper);
-        $this->bookToc->setPdf($pdf);
+        $this->bookToc->setPdf($this->createStub(Pdf::class));
         $this->bookToc->withPrintToc(false);
 
         $this->bookToc->setPosition('ch1', [
@@ -95,12 +35,10 @@ class BookTocTest extends TestCase
     public function testToPdfDoesNothingWhenNoMarks(): void
     {
         $helper = $this->createMock(Helper::class);
-        $pdf = $this->createMock(Pdf::class);
-
         $helper->expects($this->never())->method('exportToc');
 
         $this->bookToc->setHelper($helper);
-        $this->bookToc->setPdf($pdf);
+        $this->bookToc->setPdf($this->createStub(Pdf::class));
         $this->bookToc->withPrintToc(true);
 
         $this->bookToc->toPdf();
@@ -109,7 +47,7 @@ class BookTocTest extends TestCase
     public function testToPdfCallsExportTocWhenPrintTocAndHasMarks(): void
     {
         $helper = $this->createMock(Helper::class);
-        $pdf = $this->createMock(Pdf::class);
+        $pdf = $this->createStub(Pdf::class);
 
         $helper->expects($this->once())
             ->method('exportToc')

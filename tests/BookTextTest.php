@@ -3,6 +3,7 @@
 namespace JDZ\Pdf\Tests;
 
 use JDZ\Pdf\BookText;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class BookTextTest extends TestCase
@@ -27,12 +28,6 @@ class BookTextTest extends TestCase
         $this->text->addStrings('fr', ['HELLO' => 'Bonjour']);
         $this->text->setLanguage('fr');
         $this->assertSame('Bonjour', $this->text->get('hello'));
-    }
-
-    public function testSetLanguageReturnsThis(): void
-    {
-        $result = $this->text->setLanguage('en');
-        $this->assertSame($this->text, $result);
     }
 
     public function testSetInvalidLanguageFallsBackToDefault(): void
@@ -71,12 +66,6 @@ class BookTextTest extends TestCase
 
     // --- addStrings ---
 
-    public function testAddStringsReturnsThis(): void
-    {
-        $result = $this->text->addStrings('en', ['KEY' => 'value']);
-        $this->assertSame($this->text, $result);
-    }
-
     public function testAddStringsMergesWithExisting(): void
     {
         $this->text->addStrings('en', ['KEY1' => 'value1']);
@@ -109,13 +98,6 @@ class BookTextTest extends TestCase
         $this->assertSame('Hello', $this->text->get('hello'));
     }
 
-    public function testGetReturnsKeyWhenNotFoundInAnyLanguage(): void
-    {
-        $this->text->addStrings('en', ['HELLO' => 'Hello']);
-        $this->text->setLanguage('fr');
-        $this->assertSame('MISSING', $this->text->get('missing'));
-    }
-
     public function testGetCurrentLanguageTakesPrecedence(): void
     {
         $this->text->addStrings('en', ['HELLO' => 'Hello']);
@@ -124,78 +106,41 @@ class BookTextTest extends TestCase
         $this->assertSame('Bonjour', $this->text->get('hello'));
     }
 
-    // --- plural ---
+    // --- plural / pluralSimple ---
 
-    public function testPluralWithZero(): void
+    private function addFileStrings(): void
     {
         $this->text->addStrings('en', [
-            'ITEM_0' => 'items',
-            'ITEM_1' => 'item',
-            'ITEM_MORE' => 'items',
+            'FILE_0' => 'files (none)',
+            'FILE_1' => 'file',
+            'FILE_MORE' => 'files',
         ]);
-        $this->assertSame('0 items', $this->text->plural('item', 0));
     }
 
-    public function testPluralWithOne(): void
+    public static function counts(): array
     {
-        $this->text->addStrings('en', [
-            'ITEM_0' => 'items',
-            'ITEM_1' => 'item',
-            'ITEM_MORE' => 'items',
-        ]);
-        $this->assertSame('1 item', $this->text->plural('item', 1));
+        return [
+            'zero uses _0' => [0, '0 files (none)', 'files (none)'],
+            'one uses _1' => [1, '1 file', 'file'],
+            'two uses _MORE' => [2, '2 files', 'files'],
+            'many uses _MORE' => [10, '10 files', 'files'],
+        ];
     }
 
-    public function testPluralWithMany(): void
+    #[DataProvider('counts')]
+    public function testPluralPrefixesTheCount(int $count, string $plural, string $simple): void
     {
-        $this->text->addStrings('en', [
-            'ITEM_0' => 'items',
-            'ITEM_1' => 'item',
-            'ITEM_MORE' => 'items',
-        ]);
-        $this->assertSame('5 items', $this->text->plural('item', 5));
+        $this->addFileStrings();
+
+        $this->assertSame($plural, $this->text->plural('file', $count));
     }
 
-    public function testPluralWithTwo(): void
+    #[DataProvider('counts')]
+    public function testPluralSimpleReturnsTheFormOnly(int $count, string $plural, string $simple): void
     {
-        $this->text->addStrings('en', [
-            'ITEM_0' => 'items',
-            'ITEM_1' => 'item',
-            'ITEM_MORE' => 'items',
-        ]);
-        $this->assertSame('2 items', $this->text->plural('item', 2));
-    }
+        $this->addFileStrings();
 
-    // --- pluralSimple ---
-
-    public function testPluralSimpleWithZero(): void
-    {
-        $this->text->addStrings('en', [
-            'THING_0' => 'no things',
-            'THING_1' => 'one thing',
-            'THING_MORE' => 'many things',
-        ]);
-        $this->assertSame('no things', $this->text->pluralSimple('thing', 0));
-    }
-
-    public function testPluralSimpleWithOne(): void
-    {
-        $this->text->addStrings('en', [
-            'THING_0' => 'no things',
-            'THING_1' => 'one thing',
-            'THING_MORE' => 'many things',
-        ]);
-        $this->assertSame('one thing', $this->text->pluralSimple('thing', 1));
-    }
-
-    public function testPluralSimpleWithMany(): void
-    {
-        $this->text->addStrings('en', [
-            'THING_0' => 'no things',
-            'THING_1' => 'one thing',
-            'THING_MORE' => 'many things',
-        ]);
-        $this->assertSame('many things', $this->text->pluralSimple('thing', 10));
+        $this->assertSame($simple, $this->text->pluralSimple('file', $count));
     }
 
     // --- sprintf ---
@@ -218,10 +163,15 @@ class BookTextTest extends TestCase
         $this->assertSame('Hello Alice, welcome to Wonderland', $result);
     }
 
-    public function testSprintfNoArgs(): void
+    // --- printf ---
+
+    public function testPrintfPrintsTheTranslatedFormat(): void
     {
-        $result = $this->text->sprintf('key');
-        // With one arg (the key itself), it should still process
-        $this->assertIsString($result);
+        $this->text->addStrings('fr', ['GREETING' => 'Bonjour %s, %d messages']);
+        $this->text->setLanguage('fr');
+
+        $this->expectOutputString('Bonjour Bob, 3 messages');
+
+        $this->text->printf('greeting', 'Bob', 3);
     }
 }

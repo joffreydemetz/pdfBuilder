@@ -1,0 +1,5 @@
+inherits:
+    - parent
+
+size: 11
+extraOnly: true

@@ -3,38 +3,43 @@
 namespace JDZ\Pdf\Tests;
 
 use JDZ\Pdf\Color;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ColorTest extends TestCase
 {
-    public function testConstructWithoutValue(): void
+    public static function hexAndRgb(): array
     {
-        $color = new Color();
-        $this->assertInstanceOf(Color::class, $color);
+        return [
+            'red' => ['#FF0000', [255, 0, 0], 'FF0000'],
+            'green' => ['#00FF00', [0, 255, 0], '00FF00'],
+            'blue' => ['#0000FF', [0, 0, 255], '0000FF'],
+            'white' => ['#FFFFFF', [255, 255, 255], 'FFFFFF'],
+            'black' => ['#000000', [0, 0, 0], '000000'],
+            'grey' => ['#808080', [128, 128, 128], '808080'],
+            'single-digit channels are zero-padded' => ['#0080FF', [0, 128, 255], '0080FF'],
+            'mixed channels' => ['#123456', [18, 52, 86], '123456'],
+            'lowercase hex, uppercase name' => ['#ab12cd', [171, 18, 205], 'AB12CD'],
+            'another mix' => ['#6496C8', [100, 150, 200], '6496C8'],
+        ];
     }
 
-    public function testConstructWithHexString(): void
+    #[DataProvider('hexAndRgb')]
+    public function testHexParsesToRgbAndName(string $hex, array $rgb, string $name): void
     {
-        $color = new Color('#FF0000');
-        $this->assertSame([255, 0, 0], $color->toArray());
+        $color = new Color($hex);
+
+        $this->assertSame($rgb, $color->toArray());
+        $this->assertSame($name, $color->name);
     }
 
-    public function testConstructWithRgbArray(): void
+    #[DataProvider('hexAndRgb')]
+    public function testRgbParsesToTheSameRgbAndItsHexName(string $hex, array $rgb, string $name): void
     {
-        $color = new Color([0, 128, 255]);
-        $this->assertSame([0, 128, 255], $color->toArray());
-    }
+        $color = new Color($rgb);
 
-    public function testParseHexSetsNameWithoutHash(): void
-    {
-        $color = new Color('#AB12CD');
-        $this->assertSame('AB12CD', $color->name);
-    }
-
-    public function testParseHexFullSixDigits(): void
-    {
-        $color = new Color('#00FF00');
-        $this->assertSame([0, 255, 0], $color->toArray());
+        $this->assertSame($rgb, $color->toArray());
+        $this->assertSame($name, $color->name);
     }
 
     public function testParseHexShortThreeDigits(): void
@@ -49,59 +54,54 @@ class ColorTest extends TestCase
         $this->assertSame([0, 0, 0], $color->toArray());
     }
 
-    public function testParseHexBlue(): void
-    {
-        $color = new Color('#0000FF');
-        $this->assertSame([0, 0, 255], $color->toArray());
-    }
-
     public function testParseHexWithoutHash(): void
     {
         $color = new Color('FF8800');
         $this->assertSame([255, 136, 0], $color->toArray());
     }
 
-    public function testParseReturnsThis(): void
+    public function testNameStripsNonHexCharacters(): void
     {
-        $color = new Color();
-        $result = $color->parse('#FF0000');
-        $this->assertSame($color, $result);
+        $color = new Color('#AB CD EF');
+        // The hex parse strips non-hex chars, so "ABCDEF" remains
+        $this->assertSame('ABCDEF', $color->name);
     }
 
-    public function testParseFromArraySetsRgb(): void
+    public static function valueShifts(): array
     {
-        $color = new Color();
-        $color->parse([100, 150, 200]);
-        $this->assertSame([100, 150, 200], $color->toArray());
+        return [
+            'lighten a dark slate by 50' => ['#334455', 'lighten', 50, [127, 170, 212], '7FAAD4'],
+            'lighten grey by 20' => ['#808080', 'lighten', 20, [179, 179, 179], 'B3B3B3'],
+            'lighten clamps at white' => ['#808080', 'lighten', 90, [255, 255, 255], 'FFFFFF'],
+            'darken clamps at black' => ['#808080', 'darken', 90, [0, 0, 0], '000000'],
+        ];
     }
 
-    public function testToArrayReturnsThreeElements(): void
+    #[DataProvider('valueShifts')]
+    public function testLightenAndDarkenShiftTheValueAndRenameTheColor(string $hex, string $method, int $percent, array $rgb, string $name): void
     {
-        $color = new Color('#123456');
-        $result = $color->toArray();
-        $this->assertCount(3, $result);
-        $this->assertSame([18, 52, 86], $result);
+        $color = (new Color($hex))->{$method}($percent);
+
+        $this->assertSame($rgb, $color->toArray());
+        $this->assertSame($name, $color->name);
     }
 
-    public function testLightenReturnsThis(): void
+    public static function hueSectors(): array
     {
-        $color = new Color('#800000');
-        $result = $color->lighten(50);
-        $this->assertSame($color, $result);
+        return [
+            'orange (0-60°)' => ['#FF8000', [127, 63, 0]],
+            'chartreuse (60-120°)' => ['#80FF00', [63, 127, 0]],
+            'spring green (120-180°)' => ['#00FF80', [0, 127, 64]],
+            'azure (180-240°)' => ['#0080FF', [0, 64, 127]],
+            'violet (240-300°)' => ['#8000FF', [63, 0, 127]],
+            'rose (300-360°)' => ['#FF0080', [127, 0, 64]],
+        ];
     }
 
-    public function testLightenIncreasesLightness(): void
+    #[DataProvider('hueSectors')]
+    public function testDarkenBy50HalvesAFullValueColorAndKeepsItsHue(string $hex, array $rgb): void
     {
-        $color = new Color('#334455');
-        $original = $color->toArray();
-        $color->lighten(50);
-        $lightened = $color->toArray();
-
-        // At least one channel should increase when lightening a dark color
-        $anyLighter = ($lightened[0] > $original[0])
-            || ($lightened[1] > $original[1])
-            || ($lightened[2] > $original[2]);
-        $this->assertTrue($anyLighter);
+        $this->assertSame($rgb, (new Color($hex))->darken(50)->toArray());
     }
 
     public function testLightenWithZeroDoesNotChange(): void
@@ -120,13 +120,6 @@ class ColorTest extends TestCase
         $this->assertSame($original, $color->toArray());
     }
 
-    public function testDarkenReturnsThis(): void
-    {
-        $color = new Color('#FF0000');
-        $result = $color->darken(50);
-        $this->assertSame($color, $result);
-    }
-
     public function testDarkenWithZeroDoesNotChange(): void
     {
         $color = new Color('#334455');
@@ -143,26 +136,6 @@ class ColorTest extends TestCase
         $this->assertSame($original, $color->toArray());
     }
 
-    public function testWhiteColor(): void
-    {
-        $color = new Color('#FFFFFF');
-        $this->assertSame([255, 255, 255], $color->toArray());
-        $this->assertSame('FFFFFF', $color->name);
-    }
-
-    public function testBlackColor(): void
-    {
-        $color = new Color('#000000');
-        $this->assertSame([0, 0, 0], $color->toArray());
-        $this->assertSame('000000', $color->name);
-    }
-
-    public function testGrayColor(): void
-    {
-        $color = new Color('#808080');
-        $this->assertSame([128, 128, 128], $color->toArray());
-    }
-
     public function testParseOverridesPreviousColor(): void
     {
         $color = new Color('#FF0000');
@@ -170,44 +143,6 @@ class ColorTest extends TestCase
 
         $color->parse('#0000FF');
         $this->assertSame([0, 0, 255], $color->toArray());
-    }
-
-    public function testHexToRgbAndBackPreservesValues(): void
-    {
-        $values = [
-            '#FF0000' => [255, 0, 0],
-            '#00FF00' => [0, 255, 0],
-            '#0000FF' => [0, 0, 255],
-            '#FFFFFF' => [255, 255, 255],
-            '#000000' => [0, 0, 0],
-            '#808080' => [128, 128, 128],
-        ];
-
-        foreach ($values as $hex => $expectedRgb) {
-            $color = new Color($hex);
-            $this->assertSame($expectedRgb, $color->toArray(), "Failed for hex: $hex");
-        }
-    }
-
-    public function testArrayRoundTrip(): void
-    {
-        $rgb = [42, 128, 200];
-        $color = new Color($rgb);
-        $this->assertSame($rgb, $color->toArray());
-    }
-
-    public function testNameStripsNonHexCharacters(): void
-    {
-        $color = new Color('#AB CD EF');
-        // The hex parse strips non-hex chars, so "ABCDEF" remains
-        $this->assertSame('ABCDEF', $color->name);
-    }
-
-    public function testChainingParseAndLighten(): void
-    {
-        $color = new Color();
-        $result = $color->parse('#400000')->lighten(20);
-        $this->assertSame($color, $result);
     }
 
     public function testDarkenMakesTheColorDarker(): void

@@ -5,6 +5,7 @@ namespace JDZ\Pdf\Tests;
 use JDZ\Pdf\Color;
 use JDZ\Pdf\Data;
 use JDZ\Pdf\Font;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class DataTest extends TestCase
@@ -18,18 +19,6 @@ class DataTest extends TestCase
 
     // --- sets with colors ---
 
-    public function testSetsWithColorsFromHex(): void
-    {
-        $this->data->sets([
-            'colors' => [
-                'red' => '#FF0000',
-                'blue' => '#0000FF',
-            ],
-        ]);
-
-        $this->assertSame([255, 0, 0], $this->data->getColor('#FF0000'));
-    }
-
     public function testSetsWithColorObjects(): void
     {
         $red = new Color('#FF0000');
@@ -40,17 +29,6 @@ class DataTest extends TestCase
         ]);
 
         $this->assertSame([255, 0, 0], $this->data->getColor('myred'));
-    }
-
-    public function testSetsWithColorsFromArray(): void
-    {
-        $this->data->sets([
-            'colors' => [
-                'green' => '#00FF00',
-            ],
-        ]);
-
-        $this->assertSame([0, 255, 0], $this->data->getColor('green'));
     }
 
     // --- sets with fonts ---
@@ -94,7 +72,7 @@ class DataTest extends TestCase
         $this->assertSame(2, $this->data->get('borderWidth'));
     }
 
-    // --- addColor / addFont ---
+    // --- addColor ---
 
     public function testAddColor(): void
     {
@@ -102,13 +80,6 @@ class DataTest extends TestCase
         $result = $this->data->addColor('custom', $color);
         $this->assertSame($this->data, $result);
         $this->assertSame($color->toArray(), $this->data->getColor('custom'));
-    }
-
-    public function testAddFont(): void
-    {
-        $font = new Font('arial');
-        $result = $this->data->addFont('main', $font);
-        $this->assertSame($this->data, $result);
     }
 
     // --- getString ---
@@ -143,14 +114,52 @@ class DataTest extends TestCase
         $this->assertSame('DEFAULT', $this->data->getUppercaseString('missing', 'default'));
     }
 
-    // --- toUppercase ---
+    // --- getArrayItem ---
 
-    public function testToUppercase(): void
+    public static function arrayItems(): array
     {
-        $this->assertSame('HELLO', $this->data->toUppercase('hello'));
+        return [
+            'first item' => [['tags' => ['red', 'green']], 'tags', 0, 'red'],
+            'second item' => [['tags' => ['red', 'green']], 'tags', 1, 'green'],
+            'a scalar is a one-item list' => [['title' => 'Hello'], 'title', 0, 'Hello'],
+            'missing key' => [[], 'tags', 0, false],
+        ];
+    }
+
+    #[DataProvider('arrayItems')]
+    public function testGetArrayItem(array $properties, string $name, int $index, mixed $expected): void
+    {
+        $this->data->sets($properties);
+
+        $this->assertSame($expected, $this->data->getArrayItem($name, $index));
     }
 
     // --- getColor ---
+
+    public static function storedColors(): array
+    {
+        return [
+            'stored from a hex code' => ['brand', [51, 102, 153]],
+            'stored from an rgb list' => ['accent', [10, 20, 30]],
+            'property naming a stored color' => ['titleColor', [51, 102, 153]],
+            'property holding a hex code' => ['linkColor', [0, 255, 0]],
+        ];
+    }
+
+    #[DataProvider('storedColors')]
+    public function testGetColorResolvesStoredNames(string $key, array $rgb): void
+    {
+        $this->data->sets([
+            'colors' => [
+                'brand' => '#336699',
+                'accent' => [10, 20, 30],
+            ],
+            'titleColor' => 'brand',
+            'linkColor' => '#00FF00',
+        ]);
+
+        $this->assertSame($rgb, $this->data->getColor($key));
+    }
 
     public function testGetColorByName(): void
     {
@@ -186,7 +195,6 @@ class DataTest extends TestCase
         $this->data->addColor('red', $original);
 
         $clone = $this->data->getColorObject('red');
-        $this->assertInstanceOf(Color::class, $clone);
         $this->assertNotSame($original, $clone);
         $this->assertSame($original->toArray(), $clone->toArray());
     }

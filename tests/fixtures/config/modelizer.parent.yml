@@ -1,0 +1,10 @@
+colors:
+    ink: "#111111"
+    paper: "#FFFFFF"
+
+fonts:
+    default: helvetica
+    title: helvetica
+
+size: 9
+align: L
