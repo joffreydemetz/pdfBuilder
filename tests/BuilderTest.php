@@ -160,4 +160,29 @@ class BuilderTest extends TestCase
             ],
         ], $this->fixtureBuilder()->exposeLoadModelizerConfig('leaf'));
     }
+
+    /**
+     * An empty or comment-only file parses to null: it used to be a TypeError
+     * (the method returns an array).
+     */
+    public function testAnEmptyConfigFileIsAnEmptyConfig(): void
+    {
+        $inherits = [];
+
+        $this->assertSame([], $this->fixtureBuilder()->exposeLoadModelizerConfigFile('empty', $inherits));
+        $this->assertSame([], $inherits);
+    }
+
+    /**
+     * a inherits b inherits a: it used to recurse until memory ran out.
+     */
+    public function testCircularInheritanceIsRefused(): void
+    {
+        $inherits = [];
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Circular modelizer inheritance: loop-a > loop-b > loop-a');
+
+        $this->fixtureBuilder()->exposeLoadModelizerConfigFile('loop-a', $inherits);
+    }
 }

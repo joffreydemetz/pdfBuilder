@@ -25,6 +25,9 @@ abstract class Builder implements BuilderInterface
   protected Helper $helper;
   protected bool $toc = false;
 
+  /** the config files being loaded, outermost first, to catch an inheritance loop */
+  private array $loadingConfigFiles = [];
+
   public function __construct(string $sourcesPath, string $targetPath, jData $data)
   {
     $this->sourcesPath = $sourcesPath;
@@ -137,8 +140,21 @@ abstract class Builder implements BuilderInterface
     $data = [];
 
     if (file_exists($path)) {
-      if ($data = Yaml::parseFile($path, Yaml::PARSE_CONSTANT)) {
-        if (!empty($data['inherits'])) {
+      // an empty or comment-only file parses to null
+      $data = Yaml::parseFile($path, Yaml::PARSE_CONSTANT);
+      if (!is_array($data)) {
+        $data = [];
+      }
+
+      if (!empty($data['inherits'])) {
+        // a file already being loaded up the chain is a loop (it recursed forever)
+        if (in_array($file, $this->loadingConfigFiles, true)) {
+          throw new \Exception('Circular modelizer inheritance: ' . implode(' > ', [...$this->loadingConfigFiles, $file]));
+        }
+
+        $this->loadingConfigFiles[] = $file;
+
+        try {
           foreach ($data['inherits'] as $inherit) {
             if (!in_array($inherit, $inherits)) {
               $this->loadModelizerConfigFile($inherit, $inherits);
@@ -147,8 +163,11 @@ abstract class Builder implements BuilderInterface
               }
             }
           }
-          unset($data['inherits']);
+        } finally {
+          array_pop($this->loadingConfigFiles);
         }
+
+        unset($data['inherits']);
       }
     }
 
