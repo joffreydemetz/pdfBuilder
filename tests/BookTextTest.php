@@ -174,4 +174,17 @@ class BookTextTest extends TestCase
 
         $this->text->printf('greeting', 'Bob', 3);
     }
+
+    /**
+     * printf() is sprintf() printed: it skipped the [[%n:name]] placeholders
+     * (ValueError) and returned the byte count as a string.
+     */
+    public function testPrintfPrintsAndReturnsWhatSprintfBuilds(): void
+    {
+        $this->text->addStrings('en', ['MSG' => 'Hello [[%1:name]], welcome to [[%2:place]]']);
+
+        $this->expectOutputString('Hello Alice, welcome to Wonderland');
+
+        $this->assertSame('Hello Alice, welcome to Wonderland', $this->text->printf('msg', 'Alice', 'Wonderland'));
+    }
 }

@@ -109,14 +109,15 @@ class BookText
     return '';
   }
 
+  /**
+   * Prints what sprintf() builds, [[%n:name]] placeholders included, and returns it
+   * (it skipped the placeholders and returned the byte count).
+   */
   public function printf(string $k): string
   {
-    $args = func_get_args();
-    $count = count($args);
-    if ($count > 0) {
-      $args[0] = $this->get($k);
-      return call_user_func_array('printf', $args);
-    }
-    return '';
+    $text = $this->sprintf(...func_get_args());
+    echo $text;
+
+    return $text;
   }
 }
