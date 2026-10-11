@@ -93,6 +93,11 @@ abstract class Builder implements BuilderInterface
     $fonts    = [];
     $inherits = [];
 
+    // an unknown modelizer is the base one (it used to be an empty config: no colours, no fonts)
+    if (!file_exists($this->modelizerConfigPath($modelizer))) {
+      $modelizer = 'base';
+    }
+
     $config = $this->loadModelizerConfigFile($modelizer, $inherits);
 
     foreach ($inherits as $inherit) {
@@ -129,9 +134,14 @@ abstract class Builder implements BuilderInterface
     return $data->all();
   }
 
+  protected function modelizerConfigPath(string $file): string
+  {
+    return $this->sourcesPath . 'config/modelizer.' . $file . '.yml';
+  }
+
   protected function loadModelizerConfigFile(string $file, array &$inherits = []): array
   {
-    $path = $this->sourcesPath . 'config/modelizer.' . $file . '.yml';
+    $path = $this->modelizerConfigPath($file);
 
     $data = [];
 

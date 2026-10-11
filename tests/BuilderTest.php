@@ -129,6 +129,28 @@ class BuilderTest extends TestCase
         $this->assertSame([], $config);
     }
 
+    /**
+     * 1.1.2: an unknown modelizer is the base one. It used to be an empty
+     * config: no colours, no fonts, and the first getColor() threw.
+     */
+    public function testLoadModelizerConfigOfAnUnknownModelizerIsTheBaseOne(): void
+    {
+        $builder = $this->packageBuilder();
+
+        $this->assertSame($builder->exposeLoadModelizerConfig('base'), $builder->exposeLoadModelizerConfig('nonexistent_model'));
+        $this->assertSame(self::baseScalars() + self::baseColorsAndFonts(), $builder->exposeLoadModelizerConfig('nonexistent_model'));
+    }
+
+    public function testLoadModelizerConfigOfAnUnknownModelizerWithoutABaseOneIsEmpty(): void
+    {
+        $this->assertSame(['colors' => [], 'fonts' => []], $this->fixtureBuilder()->exposeLoadModelizerConfig('nonexistent_model'));
+    }
+
+    public function testLoadModelizerConfigOfAnEmptyFileIsNotTheBaseOne(): void
+    {
+        $this->assertSame(['colors' => [], 'fonts' => []], $this->fixtureBuilder()->exposeLoadModelizerConfig('empty'));
+    }
+
     public function testLoadModelizerConfigFileListsAncestorsParentFirstAndOnce(): void
     {
         // leaf inherits [child, extra]; both inherit parent
