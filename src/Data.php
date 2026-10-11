@@ -153,12 +153,12 @@ class Data extends jData
 
   public function getBorderWidth(int|float $width = 1): int|float
   {
-    return $this->getInt('borderWidth') * $width;
+    return $this->getFloat('borderWidth') * $width;
   }
 
   public function px2mm(string $k, int|float|null $default = null, int $dpi = 72): int|float
   {
-    if (null !== ($value = $this->get($k, $default))) {
+    if (null !== ($value = $this->measure($k, $default))) {
       return $this->helper->px2mm($value, $dpi);
     }
 
@@ -167,7 +167,7 @@ class Data extends jData
 
   public function px2pt(string $k, int $dpi = 72): int|float
   {
-    if ($value = $this->getInt($k)) {
+    if ($value = $this->measure($k)) {
       return $this->helper->px2pt($value, $dpi);
     }
 
@@ -176,7 +176,7 @@ class Data extends jData
 
   public function mm2px(string $k, int $dpi = 72): int|float
   {
-    if ($value = $this->get($k)) {
+    if ($value = $this->measure($k)) {
       return $this->helper->mm2px($value, $dpi);
     }
 
@@ -185,10 +185,24 @@ class Data extends jData
 
   public function percent2mm(string $k, int $base): int|float
   {
-    if ($value = $this->get($k)) {
+    if ($value = $this->measure($k)) {
       return $this->helper->percent2mm($value, $base);
     }
 
     throw new \Exception('Error in ' . __METHOD__ . ' : $k=' . $k);
+  }
+
+  /**
+   * A measure of the config (a width, a size, a margin) as a float: an int, a
+   * float or a numeric string. Missing, null or not a number: the default
+   * (null when there is none). getInt() used to truncate 0.1 to 0 and 7.5 to 7.
+   */
+  private function measure(string $k, int|float|null $default = null): ?float
+  {
+    if (!is_numeric($this->get($k))) {
+      return null === $default ? null : (float)$default;
+    }
+
+    return $this->getFloat($k);
   }
 }

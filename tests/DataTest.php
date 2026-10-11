@@ -239,13 +239,36 @@ class DataTest extends TestCase
     public function testGetBorderWidth(): void
     {
         $this->data->sets(['borderWidth' => 2]);
-        $this->assertSame(2, $this->data->getBorderWidth(1));
+        $this->assertSame(2.0, $this->data->getBorderWidth(1));
     }
 
     public function testGetBorderWidthWithMultiplier(): void
     {
         $this->data->sets(['borderWidth' => 3]);
-        $this->assertSame(9, $this->data->getBorderWidth(3));
+        $this->assertSame(9.0, $this->data->getBorderWidth(3));
+    }
+
+    /**
+     * 1.1.2: borderWidth is a width in mm, read as a float. getInt() truncated
+     * the packaged default (0.1) to 0, so every hairline asked for a 0 width
+     * and a multiplier of 0.1 could never give 0.01.
+     */
+    public function testGetBorderWidthKeepsAFraction(): void
+    {
+        $this->data->sets(['borderWidth' => 0.1]);
+        $this->assertSame(0.1, $this->data->getBorderWidth());
+        $this->assertEqualsWithDelta(0.02, $this->data->getBorderWidth(0.2), 1e-9);
+    }
+
+    public function testGetBorderWidthReadsANumericString(): void
+    {
+        $this->data->sets(['borderWidth' => '0.5']);
+        $this->assertSame(1.0, $this->data->getBorderWidth(2));
+    }
+
+    public function testGetBorderWidthIsZeroWhenUnset(): void
+    {
+        $this->assertSame(0.0, $this->data->getBorderWidth(3));
     }
 
     // --- px2mm ---
@@ -269,6 +292,26 @@ class DataTest extends TestCase
         $this->data->px2mm('missing');
     }
 
+    /** 1.1.2: every measure is read through getFloat(): a numeric string converts, a word does not. */
+    public function testPx2mmReadsANumericString(): void
+    {
+        $this->data->sets(['size' => '72']);
+        $this->assertEqualsWithDelta(25.4, $this->data->px2mm('size'), 0.1);
+    }
+
+    public function testPx2mmUsesTheDefaultForAValueThatIsNotANumber(): void
+    {
+        $this->data->sets(['size' => 'auto']);
+        $this->assertEqualsWithDelta(25.4, $this->data->px2mm('size', 72), 0.1);
+    }
+
+    public function testPx2mmThrowsForAValueThatIsNotANumberWithoutADefault(): void
+    {
+        $this->data->sets(['size' => 'auto']);
+        $this->expectException(\Exception::class);
+        $this->data->px2mm('size');
+    }
+
     // --- px2pt ---
 
     public function testPx2pt(): void
@@ -284,6 +327,26 @@ class DataTest extends TestCase
         $this->data->px2pt('missing');
     }
 
+    /** 1.1.2: a fractional size (7.5px) was truncated to 7 before the conversion. */
+    public function testPx2ptKeepsAFraction(): void
+    {
+        $this->data->sets(['size' => 7.5]);
+        $this->assertEqualsWithDelta(7.5, $this->data->px2pt('size'), 0.001);
+    }
+
+    public function testPx2ptReadsANumericString(): void
+    {
+        $this->data->sets(['size' => '10']);
+        $this->assertEqualsWithDelta(10, $this->data->px2pt('size'), 0.001);
+    }
+
+    public function testPx2ptThrowsForAValueThatIsNotANumber(): void
+    {
+        $this->data->sets(['size' => 'large']);
+        $this->expectException(\Exception::class);
+        $this->data->px2pt('size');
+    }
+
     // --- mm2px ---
 
     public function testMm2px(): void
@@ -297,6 +360,12 @@ class DataTest extends TestCase
     {
         $this->expectException(\Exception::class);
         $this->data->mm2px('missing');
+    }
+
+    public function testMm2pxReadsANumericString(): void
+    {
+        $this->data->sets(['size' => '25.4']);
+        $this->assertEqualsWithDelta(72, $this->data->mm2px('size'), 0.001);
     }
 
     // --- percent2mm ---

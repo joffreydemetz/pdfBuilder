@@ -151,7 +151,7 @@ abstract class FormAbstractModelizer extends Modelizer
 		if ($labelWidth === false) {
 			$labelWidth = $this->pdf->GetStringWidth($label) + $this->helper->px2mm(3);
 		}
-		$this->pdf->Cell($labelWidth, $this->helper->px2mm($this->data->get('labelFsize')), $label);
+		$this->pdf->Cell($labelWidth, $this->data->px2mm('labelFsize'), $label);
 		if ($inline === false) {
 			$labelWidth = 0;
 			$this->pdf->Ln($this->data->px2mm('fieldHeight') - $this->helper->px2mm(1));

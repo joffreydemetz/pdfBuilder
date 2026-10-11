@@ -94,7 +94,7 @@ class Modelizer
         $placeholder->text = str_replace('%total%', $total, $placeholder->text);
 
         $this->pdf->SetTextColorArray($this->data->getColor('pageNbColor'));
-        $this->pdf->SetFont($this->data->get('pageNbFont'), '', $this->helper->px2pt($this->data->get('pageNbSize')));
+        $this->pdf->SetFont($this->data->get('pageNbFont'), '', $this->data->px2pt('pageNbSize'));
         $this->pdf->setX($placeholder->x);
         $this->pdf->setY($placeholder->y, false);
         $this->pdf->Cell($placeholder->w, $placeholder->h, $placeholder->text, 0, 0, 'R', true, '', 0, false, 'T', 'M');

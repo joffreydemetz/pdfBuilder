@@ -337,7 +337,7 @@ class FormAbstractModelizerTest extends TestCase
         $this->assertSame([[self::FORM_BG], [self::WHITE], [self::FIELD_BG]], $this->pdf->argsOf('setFillColorArray'));
         $this->assertSame([['times', 'I', 9.0]], $this->pdf->argsOf('setFont'));
         $this->assertSame([
-            [80, 40, '', ['TRBL' => $this->helper->border(1, self::FIELD_STROKE)], 0, '', true],
+            [80, 40, '', ['TRBL' => $this->helper->border(1.0, self::FIELD_STROKE)], 0, '', true],
             [$inside, $header, $title, 0, 1, 'C', true],
             [$inside, 40 - $border * 3 - $header, '', 0, 1, '', true],
         ], $this->pdf->argsOf('Cell'));

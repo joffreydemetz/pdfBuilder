@@ -177,6 +177,19 @@ class ModelizerTest extends TestCase
         $this->assertSame(3, $this->pdf->getPage());
     }
 
+    /** 1.1.2: pageNbSize is a font size, read as a float (7.5px stays 7.5pt). */
+    public function testToPdfReadsAFractionalPageNumberSize(): void
+    {
+        $this->data->sets(['pageNbSize' => '7.5']);
+        $modelizer = new PagedModelizer($this->pdf, $this->data, 1, '%page%');
+        $modelizer->load();
+        $this->pdf->calls = [];
+
+        $modelizer->toPdf();
+
+        $this->assertSame([['courier', '', 7.5]], $this->pdf->argsOf('setFont'));
+    }
+
     // --- setPdfMargins / setPdfPagebreak ---
 
     public static function marginOverrides(): array
