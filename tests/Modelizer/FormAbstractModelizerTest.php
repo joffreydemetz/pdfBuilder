@@ -257,14 +257,19 @@ class FormAbstractModelizerTest extends TestCase
         $this->assertSame(array_fill(0, $rows, 150), array_column($inputs, 1));
         $this->assertSame(array_fill(0, $rows, $this->x0), array_column($inputs, 5));
 
-        // first input one row (less 3px) below the label, each next one lower down
+        // first input one row (less 3px) below the label, each next one a field height
+        // less 1px (17px) lower, like the label row. 1.1.2: the second input used to be 17px
+        // lower and the next ones 18px (the cursor, not the input, had been moved).
         $ys = array_column($inputs, 6);
         $this->assertEqualsWithDelta(100 + $this->mm(20) - $this->mm(3), $ys[0], self::DELTA);
         for ($i = 1; $i < $rows; $i++) {
-            $this->assertGreaterThan($ys[$i - 1], $ys[$i]);
+            $this->assertEqualsWithDelta($ys[0] + $i * $this->mm(17), $ys[$i], self::DELTA, 'input ' . ($i + 1));
         }
-        // a rule under the label and one under the inputs, then one row below the last input
-        $this->assertCount(2, $this->pdf->argsOf('Line'));
+        // a rule under the label and one a field height (18px) under the last input (it was
+        // 19px under a single input, 18px under several), then one row below the last input
+        $lines = $this->pdf->argsOf('Line');
+        $this->assertCount(2, $lines);
+        $this->assertEqualsWithDelta(end($ys) + $this->mm(18), $lines[1][1], self::DELTA, 'the rule under the inputs');
         $this->assertEqualsWithDelta(end($ys) + $this->mm(20), $this->pdf->GetY(), self::DELTA);
     }
 

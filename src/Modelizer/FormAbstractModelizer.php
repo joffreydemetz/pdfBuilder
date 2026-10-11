@@ -129,18 +129,18 @@ abstract class FormAbstractModelizer extends Modelizer
 		$this->setFormFieldLabel($label, $labelWidth, false, false);
 		$y = $this->toNextRow($lastY);
 		$y -= $this->helper->px2mm(3);
+		// each next input a field height less 1px under the previous one, like the label
+		// row (the second one used to be 17px lower and the next ones 18px: the cursor, not
+		// the input, had been moved)
+		$rowStep = $this->data->px2mm('fieldHeight') - $this->helper->px2mm(1);
 		for ($i = 1; $i <= $numRows; $i++) {
 			$lastY = $y;
 			$this->setFormFieldInput($x, $y, $fieldName . $i, $fieldWidth);
-			$y = $this->pdf->GetY();
-			if ($numRows > 1) {
-				$y -= $this->helper->px2mm(4);
-			}
+			$y += $rowStep;
 		}
-		if ($numRows === 1) {
-			$y -= $this->helper->px2mm(2);
-		}
-		$this->pdf->SetY($y, false);
+		// the rule under the inputs: one field height under the last one (it was 19px under
+		// a single input, 18px under several)
+		$this->pdf->SetY($lastY + $this->data->px2mm('fieldHeight'), false);
 		$y = $this->toNextRow($lastY);
 	}
 
