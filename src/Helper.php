@@ -219,29 +219,35 @@ class Helper
 
     $img = $this->getImageInfos($path);
 
+    // the natural size in mm: the width through the horizontal resolution, the
+    // height through the vertical one (they were swapped)
+    $wMm = $this->px2mm($img->width, $img->resX);
+    $hMm = $this->px2mm($img->height, $img->resY);
+
+    // the box: the smaller scale of the two caps (the width cap was ignored once
+    // the height cap applied), worked out in mm so that a binding cap is met
+    // exactly (the box used to be rounded to whole pixels: 10 mm gave 9.88 mm)
+    $scale = 1;
+
+    if (null !== $w && $w > 0 && $wMm > $w) {
+      $scale = min($scale, $w / $wMm);
+    }
+
+    if (null !== $h && $h > 0 && $hMm > $h) {
+      $scale = min($scale, $h / $hMm);
+    }
+
     $images[$key] = [
       'path' => $img->path,
       'oriW' => $img->width,
       'oriH' => $img->height,
-      'wPx'  => $img->width,
-      'hPx'  => $img->height,
+      'wPx'  => $img->width * $scale,
+      'hPx'  => $img->height * $scale,
       'resX' => $img->resX,
       'resY' => $img->resY,
+      'w'    => $wMm * $scale,
+      'h'    => $hMm * $scale,
     ];
-
-    $maxHpx = null !== $h ? $this->mm2px($h, $img->resY) : 0;
-    $maxWpx = null !== $w ? $this->mm2px($w, $img->resX) : 0;
-
-    if (null !== $h && $maxHpx && $img->height > $maxHpx) {
-      $images[$key]['hPx'] = $maxHpx;
-      $images[$key]['wPx'] = abs($maxHpx * $img->width / $img->height);
-    } elseif (null !== $w && $maxWpx && $img->width > $maxWpx) {
-      $images[$key]['wPx'] = $maxWpx;
-      $images[$key]['hPx'] = abs($maxWpx * $img->height / $img->width);
-    }
-
-    $images[$key]['w'] = $this->px2mm($images[$key]['wPx'], $img->resY);
-    $images[$key]['h'] = $this->px2mm($images[$key]['hPx'], $img->resX);
 
     return $images[$key];
   }

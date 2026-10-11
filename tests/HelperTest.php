@@ -356,17 +356,24 @@ class HelperTest extends TestCase
 
     // --- imageSize (landscape-200x100.png at 72 dpi) ---
 
+    /**
+     * 1.1.2: a binding cap is met exactly (the box used to be rounded to whole
+     * pixels first: a 10 mm cap gave 9.88 mm), and both caps apply (the width
+     * cap was ignored once the height cap applied).
+     */
     public static function imageBoxes(): array
     {
-        $natural = ['wPx' => 200, 'hPx' => 100, 'w' => 70.55551745557612, 'h' => 35.27775872778806];
-        $heightCapped = ['wPx' => 56.0, 'hPx' => 28.0, 'w' => 19.755544887561314, 'h' => 9.877772443780657];
+        $natural = ['wPx' => 200, 'hPx' => 100, 'w' => 70.5555, 'h' => 35.2778];
+        $heightCapped = ['wPx' => 56.6929, 'hPx' => 28.3465, 'w' => 20.0, 'h' => 10.0];
 
         return [
             'no box: natural size' => [null, null, $natural],
             'box larger than the image: natural size' => [500, 500, $natural],
-            'height cap (10mm = 28px) scales both sides' => [null, 10, $heightCapped],
-            'width cap (22mm = 62px) scales both sides' => [22, null, ['wPx' => 62.0, 'hPx' => 31.0, 'w' => 21.8722104112286, 'h' => 10.9361052056143]],
+            'height cap (10mm) scales both sides' => [null, 10, $heightCapped],
+            'width cap (22mm) scales both sides' => [22, null, ['wPx' => 62.3622, 'hPx' => 31.1811, 'w' => 22.0, 'h' => 11.0]],
             'height cap applied, width cap already met' => [60, 10, $heightCapped],
+            'both caps, the width one binds after the height one' => [15, 10, ['wPx' => 42.5197, 'hPx' => 21.2598, 'w' => 15.0, 'h' => 7.5]],
+            'a zero cap is no cap' => [0, 0, $natural],
         ];
     }
 
@@ -375,17 +382,38 @@ class HelperTest extends TestCase
     {
         $path = self::IMAGES . 'landscape-200x100.png';
 
-        $this->assertSame([
-            'path' => $path,
-            'oriW' => 200,
-            'oriH' => 100,
-            'wPx' => $size['wPx'],
-            'hPx' => $size['hPx'],
-            'resX' => 72,
-            'resY' => 72,
-            'w' => $size['w'],
-            'h' => $size['h'],
-        ], $this->helper->imageSize($path, $w, $h));
+        $actual = $this->helper->imageSize($path, $w, $h);
+
+        $this->assertSame(['path', 'oriW', 'oriH', 'wPx', 'hPx', 'resX', 'resY', 'w', 'h'], array_keys($actual));
+        $this->assertSame([$path, 200, 100, 72, 72], [$actual['path'], $actual['oriW'], $actual['oriH'], $actual['resX'], $actual['resY']]);
+        $this->assertEqualsWithDelta($size, array_intersect_key($actual, $size), 0.001);
+    }
+
+    public function testImageSizeKeepsTheNaturalPixelSizeAsIntegers(): void
+    {
+        $size = $this->helper->imageSize(self::IMAGES . 'landscape-200x100.png');
+
+        $this->assertSame([200, 100], [$size['wPx'], $size['hPx']]);
+    }
+
+    /**
+     * 1.1.2: the width was converted through the vertical resolution and the
+     * height through the horizontal one. A 300x150 px image at 300x150 dpi is
+     * one inch square (it came out as 50.8 x 12.7 mm).
+     */
+    public function testImageSizeUsesEachAxisResolution(): void
+    {
+        $size = $this->helper->imageSize($this->image('anisotropic.png', 300, 150, 'png', 300, 150));
+
+        $this->assertSame([300, 150], [$size['resX'], $size['resY']]);
+        $this->assertEqualsWithDelta([25.4, 25.4], [$size['w'], $size['h']], 0.01);
+    }
+
+    public function testImageSizeCapsAnAnisotropicImageOnItsOwnAxis(): void
+    {
+        $size = $this->helper->imageSize($this->image('anisotropic-capped.png', 300, 150, 'png', 300, 150), null, 12.7);
+
+        $this->assertEqualsWithDelta([12.7, 12.7, 150, 75], [$size['w'], $size['h'], $size['wPx'], $size['hPx']], 0.01);
     }
 
     public function testImageSizeThrowsForAMissingImage(): void
@@ -417,8 +445,8 @@ class HelperTest extends TestCase
         rmdir($this->tmp);
     }
 
-    /** a $w x $h image written under a temp dir removed in tearDown */
-    private function image(string $relative, int $w, int $h, string $type = 'png'): string
+    /** a $w x $h image written under a temp dir removed in tearDown, at GD's 96 dpi unless told otherwise */
+    private function image(string $relative, int $w, int $h, string $type = 'png', ?int $resX = null, ?int $resY = null): string
     {
         $this->tmp ??= sys_get_temp_dir() . '/jdz-pdf-' . bin2hex(random_bytes(6));
         $path = $this->tmp . '/' . $relative;
@@ -427,6 +455,9 @@ class HelperTest extends TestCase
         }
 
         $image = imagecreatetruecolor($w, $h);
+        if (null !== $resX) {
+            imageresolution($image, $resX, $resY ?? $resX);
+        }
         match ($type) {
             'png' => imagepng($image, $path),
             'webp' => imagewebp($image, $path),
