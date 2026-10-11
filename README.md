@@ -10,7 +10,7 @@ Provides a **Builder/Modelizer** pattern for generating multi-page PDFs with YAM
 - [TCPDF](https://github.com/tecnickcom/TCPDF) ^6.3
 - [FPDI](https://www.setasign.com/products/fpdi/about/) ^2.6
 - [Symfony YAML](https://symfony.com/doc/current/components/yaml.html) ^7.4
-- [jdz/data](https://github.com/joffreydemetz/data) ^2.0 (`JDZ\Utils\Data`, which `Builder` and `Data` build on)
+- [jdz/data](https://github.com/joffreydemetz/data) ^2.0.4 (`JDZ\Utils\Data`, which `Builder` and `Data` build on; `getFloat()` reads the measures)
 
 ## Installation
 
@@ -115,7 +115,9 @@ pFsize: 9
 borderWidth: 0.1
 ```
 
-Configs are loaded from your `build()` via `$this->loadModelizerConfig('formation')` (protected), which reads `<sourcesPath>config/modelizer.<name>.yml`, resolves the full inheritance chain and merges colors, fonts, and all other properties.
+Configs are loaded from your `build()` via `$this->loadModelizerConfig('formation')` (protected), which reads `<sourcesPath>config/modelizer.<name>.yml`, resolves the full inheritance chain and merges colors, fonts, and all other properties. A name without a file loads `base`.
+
+Every measure (`borderWidth`, the `*Fsize` sizes, margins, paddings) is read as a float: `0.1`, `7.5` and `"7.5"` all work. `borderWidth` is a line width in mm (`getBorderWidth(0.1)` is a tenth of it).
 
 ## Usage
 
@@ -262,6 +264,10 @@ php examples/cv.php
 ```bash
 vendor/bin/phpunit
 ```
+
+## Changelog
+
+- **1.1.2** (2026-10-11) — every measure is read as a float through `jdz/data`'s `getFloat()` (`borderWidth: 0.1` was 0, `px2pt` of 7.5 was 7, a numeric string works); `Helper::imageSize()` meets a binding cap exactly (a 10 mm cap gave 9.88 mm: the box was rounded to whole pixels first), applies both caps (the width cap was ignored once the height cap applied) and converts each axis with its own resolution (they were swapped); `%total%` is the number of pages (it counted the placeholders); `setFormFieldFulllength()` stacks its inputs 17 px apart (17 then 18); an unknown modelizer loads `base` (it was an empty config, no colours, no fonts). Requires `jdz/data ^2.0.4`.
 
 ## License
 
