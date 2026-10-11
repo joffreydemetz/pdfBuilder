@@ -177,6 +177,21 @@ class ModelizerTest extends TestCase
         $this->assertSame(3, $this->pdf->getPage());
     }
 
+    /**
+     * 1.1.2: %total% is the number of pages. It was the number of placeholders:
+     * a page carrying two of them (a header and a footer) counted twice.
+     */
+    public function testToPdfCountsPagesNotPlaceholders(): void
+    {
+        $modelizer = new PagedModelizer($this->pdf, $this->data, 2, '%page%/%total%', 2);
+        $modelizer->load();
+        $this->pdf->calls = [];
+
+        $modelizer->toPdf();
+
+        $this->assertSame(['1/2', '1/2', '2/2', '2/2'], array_column($this->pdf->argsOf('Cell'), 2));
+    }
+
     /** 1.1.2: pageNbSize is a font size, read as a float (7.5px stays 7.5pt). */
     public function testToPdfReadsAFractionalPageNumberSize(): void
     {

@@ -84,7 +84,8 @@ class Modelizer
     $this->pdf->endPage();
 
     if ($this->pagePlaceholders) {
-      $total = count(array_values($this->pagePlaceholders));
+      // the number of pages (it was the number of placeholders)
+      $total = $this->pdf->getNumPages();
 
       foreach ($this->pagePlaceholders as $placeholder) {
         $this->pdf->setPage($placeholder->page);
