@@ -88,10 +88,6 @@ abstract class Builder implements BuilderInterface
   protected function loadModelizerConfig(string $modelizer): array
   {
     $data = new jData();
-    $data->sets([
-      'colors' => [],
-      'fonts' => [],
-    ]);
 
     $colors   = [];
     $fonts    = [];
